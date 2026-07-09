@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Classement IA · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="recruiter" active="recruiter-ranking"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold">Classement IA</h1>
+        <p class="text-sm text-muted mt-0.5">Candidats triés par score de correspondance NLP.</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-outline text-sm">🔔</button>
+        <button class="btn-primary text-sm">+ Action</button>
+      </div>
+    </header>
+    <div class="p-6">
+<div class="card p-5 mb-5 flex gap-3"><select class="input max-w-xs"><option>Senior Frontend Engineer</option><option>Product Designer</option></select><button class="btn-outline">Filtres IA</button><button class="btn-primary ml-auto">Exporter</button></div>
+<div class="card overflow-hidden">
+  <table class="w-full">
+    <thead class="bg-slate-50 border-b border-line text-xs uppercase tracking-wider text-muted">
+      <tr><th class="px-5 py-3 text-left">Rang</th><th class="px-5 py-3 text-left">Candidat</th><th class="px-5 py-3 text-left">Score IA</th><th class="px-5 py-3 text-left">Compétences</th><th class="px-5 py-3 text-left">Expérience</th><th></th></tr>
+    </thead>
+    <tbody class="divide-y divide-line text-sm">
+      <tr class="hover:bg-slate-50">
+        <td class="px-5 py-4 font-display font-bold text-lg">#1</td>
+        <td class="px-5 py-4"><div class="flex gap-3 items-center"><div class="h-9 w-9 rounded-full bg-navy text-white flex items-center justify-center font-semibold text-xs">EM</div><div><p class="font-semibold">Eva Martin</p><p class="text-xs text-muted">Berlin</p></div></div></td>
+        <td class="px-5 py-4"><div class="flex items-center gap-2"><div class="w-24 h-2 bg-slate-200 rounded-full overflow-hidden"><div class="h-full gradient-gold" style="width:96%"></div></div><span class="font-semibold">96%</span></div></td>
+        <td class="px-5 py-4 text-xs">React, TS, Next.js</td>
+        <td class="px-5 py-4">8 ans</td>
+        <td class="px-5 py-4 text-right"><button class="btn-outline text-xs">Voir</button></td>
+      </tr>
+      <tr class="hover:bg-slate-50">
+        <td class="px-5 py-4 font-display font-bold text-lg">#2</td>
+        <td class="px-5 py-4"><div class="flex gap-3 items-center"><div class="h-9 w-9 rounded-full bg-navy text-white flex items-center justify-center font-semibold text-xs">AK</div><div><p class="font-semibold">Alex Kim</p><p class="text-xs text-muted">Lisbonne</p></div></div></td>
+        <td class="px-5 py-4"><div class="flex items-center gap-2"><div class="w-24 h-2 bg-slate-200 rounded-full overflow-hidden"><div class="h-full gradient-gold" style="width:94%"></div></div><span class="font-semibold">94%</span></div></td>
+        <td class="px-5 py-4 text-xs">Figma, React, DS</td>
+        <td class="px-5 py-4">6 ans</td>
+        <td class="px-5 py-4 text-right"><button class="btn-outline text-xs">Voir</button></td>
+      </tr>
+      <tr class="hover:bg-slate-50">
+        <td class="px-5 py-4 font-display font-bold text-lg">#3</td>
+        <td class="px-5 py-4"><div class="flex gap-3 items-center"><div class="h-9 w-9 rounded-full bg-navy text-white flex items-center justify-center font-semibold text-xs">RP</div><div><p class="font-semibold">Raj Patel</p><p class="text-xs text-muted">Remote</p></div></div></td>
+        <td class="px-5 py-4"><div class="flex items-center gap-2"><div class="w-24 h-2 bg-slate-200 rounded-full overflow-hidden"><div class="h-full gradient-gold" style="width:92%"></div></div><span class="font-semibold">92%</span></div></td>
+        <td class="px-5 py-4 text-xs">Node, GraphQL, AWS</td>
+        <td class="px-5 py-4">7 ans</td>
+        <td class="px-5 py-4 text-right"><button class="btn-outline text-xs">Voir</button></td>
+      </tr>
+      <tr class="hover:bg-slate-50">
+        <td class="px-5 py-4 font-display font-bold text-lg">#4</td>
+        <td class="px-5 py-4"><div class="flex gap-3 items-center"><div class="h-9 w-9 rounded-full bg-navy text-white flex items-center justify-center font-semibold text-xs">LD</div><div><p class="font-semibold">Léa Dupont</p><p class="text-xs text-muted">Paris</p></div></div></td>
+        <td class="px-5 py-4"><div class="flex items-center gap-2"><div class="w-24 h-2 bg-slate-200 rounded-full overflow-hidden"><div class="h-full gradient-gold" style="width:89%"></div></div><span class="font-semibold">89%</span></div></td>
+        <td class="px-5 py-4 text-xs">React, Node</td>
+        <td class="px-5 py-4">5 ans</td>
+        <td class="px-5 py-4 text-right"><button class="btn-outline text-xs">Voir</button></td>
+      </tr>
+      <tr class="hover:bg-slate-50">
+        <td class="px-5 py-4 font-display font-bold text-lg">#5</td>
+        <td class="px-5 py-4"><div class="flex gap-3 items-center"><div class="h-9 w-9 rounded-full bg-navy text-white flex items-center justify-center font-semibold text-xs">YS</div><div><p class="font-semibold">Yuki Sato</p><p class="text-xs text-muted">Tokyo</p></div></div></td>
+        <td class="px-5 py-4"><div class="flex items-center gap-2"><div class="w-24 h-2 bg-slate-200 rounded-full overflow-hidden"><div class="h-full gradient-gold" style="width:87%"></div></div><span class="font-semibold">87%</span></div></td>
+        <td class="px-5 py-4 text-xs">AWS, K8s, Go</td>
+        <td class="px-5 py-4">9 ans</td>
+        <td class="px-5 py-4 text-right"><button class="btn-outline text-xs">Voir</button></td>
+      </tr>
+    </tbody>
+  </table>
+</div></div>
+  </main>
+</div><script src="components/sh-sidebar.js"></script>
+</body></html>

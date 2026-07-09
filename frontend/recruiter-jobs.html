@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Offres recruteur · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="recruiter" active="recruiter-jobs"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold">Offres d'emploi</h1>
+        <p class="text-sm text-muted mt-0.5">Gérez tous vos postes.</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-outline text-sm">🔔</button>
+        <button class="btn-primary text-sm">+ Action</button>
+      </div>
+    </header>
+    <div class="p-6">
+<div class="flex justify-end mb-4"><a href="recruiter-jobs-new.html" class="btn-gold">+ Créer une offre</a></div>
+<div class="card overflow-hidden">
+  <table class="w-full">
+    <thead class="bg-slate-50 border-b border-line text-xs uppercase tracking-wider text-muted">
+      <tr><th class="px-5 py-3 text-left">Poste</th><th class="px-5 py-3 text-left">Statut</th><th class="px-5 py-3 text-left">Candidats</th><th class="px-5 py-3 text-left">Publié</th><th></th></tr>
+    </thead>
+    <tbody class="divide-y divide-line text-sm">
+      <tr class="hover:bg-slate-50">
+        <td class="px-5 py-4"><p class="font-semibold">Senior Frontend Engineer</p><p class="text-xs text-muted">Berlin · CDI</p></td>
+        <td class="px-5 py-4"><span class="badge bg-warning/15 text-warning">Brouillon</span></td>
+        <td class="px-5 py-4 font-medium">0</td>
+        <td class="px-5 py-4 text-muted">—</td>
+        <td class="px-5 py-4 text-right"><button class="btn-outline text-xs">⋯</button></td>
+      </tr>
+      <tr class="hover:bg-slate-50">
+        <td class="px-5 py-4"><p class="font-semibold">Product Designer</p><p class="text-xs text-muted">Lisbonne · CDI</p></td>
+        <td class="px-5 py-4"><span class="badge bg-success/15 text-success">Actif</span></td>
+        <td class="px-5 py-4 font-medium">57</td>
+        <td class="px-5 py-4 text-muted">il y a 5j</td>
+        <td class="px-5 py-4 text-right"><button class="btn-outline text-xs">⋯</button></td>
+      </tr>
+      <tr class="hover:bg-slate-50">
+        <td class="px-5 py-4"><p class="font-semibold">Backend Engineer</p><p class="text-xs text-muted">Remote · CDI</p></td>
+        <td class="px-5 py-4"><span class="badge bg-success/15 text-success">Actif</span></td>
+        <td class="px-5 py-4 font-medium">74</td>
+        <td class="px-5 py-4 text-muted">il y a 8j</td>
+        <td class="px-5 py-4 text-right"><button class="btn-outline text-xs">⋯</button></td>
+      </tr>
+      <tr class="hover:bg-slate-50">
+        <td class="px-5 py-4"><p class="font-semibold">UX Researcher</p><p class="text-xs text-muted">Londres · CDD</p></td>
+        <td class="px-5 py-4"><span class="badge bg-success/15 text-success">Actif</span></td>
+        <td class="px-5 py-4 font-medium">91</td>
+        <td class="px-5 py-4 text-muted">il y a 12j</td>
+        <td class="px-5 py-4 text-right"><button class="btn-outline text-xs">⋯</button></td>
+      </tr>
+    </tbody>
+  </table>
+</div></div>
+  </main>
+</div><script src="components/sh-sidebar.js"></script>
+</body></html>

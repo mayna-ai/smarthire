@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Notifications · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="candidate" active="candidate-notifications"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold">Notifications</h1>
+        <p class="text-sm text-muted mt-0.5">Toutes vos alertes.</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-outline text-sm">🔔</button>
+        <button class="btn-primary text-sm">+ Action</button>
+      </div>
+    </header>
+    <div class="p-6">
+<div class="card divide-y divide-line">
+  <div class="p-4 flex gap-4 items-start hover:bg-slate-50">
+    <div class="h-10 w-10 rounded-full bg-success/15 text-success flex items-center justify-center">📨</div>
+    <div class="flex-1"><p class="font-medium text-sm">Nouvelle candidature reçue</p><p class="text-xs text-muted mt-0.5">Northwind a reçu votre candidature.</p></div>
+    <span class="text-xs text-muted">il y a 2h</span>
+  </div>
+  <div class="p-4 flex gap-4 items-start hover:bg-slate-50">
+    <div class="h-10 w-10 rounded-full bg-gold/15 text-gold flex items-center justify-center">📅</div>
+    <div class="flex-1"><p class="font-medium text-sm">Entretien programmé</p><p class="text-xs text-muted mt-0.5">Lumen — jeudi 14h.</p></div>
+    <span class="text-xs text-muted">hier</span>
+  </div>
+  <div class="p-4 flex gap-4 items-start hover:bg-slate-50">
+    <div class="h-10 w-10 rounded-full bg-navy/15 text-navy flex items-center justify-center">✨</div>
+    <div class="flex-1"><p class="font-medium text-sm">Nouvelle recommandation</p><p class="text-xs text-muted mt-0.5">3 offres correspondent à votre profil.</p></div>
+    <span class="text-xs text-muted">2 jours</span>
+  </div>
+  <div class="p-4 flex gap-4 items-start hover:bg-slate-50">
+    <div class="h-10 w-10 rounded-full bg-navy/15 text-navy flex items-center justify-center">💬</div>
+    <div class="flex-1"><p class="font-medium text-sm">Nouveau message</p><p class="text-xs text-muted mt-0.5">Marcus Weber vous a envoyé un message.</p></div>
+    <span class="text-xs text-muted">3 jours</span>
+  </div>
+</div></div>
+  </main>
+</div><script src="components/sh-sidebar.js"></script>
+</body></html>

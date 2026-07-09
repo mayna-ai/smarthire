@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nouvelle offre · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="recruiter" active="recruiter-jobs"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold">Nouvelle offre</h1>
+        <p class="text-sm text-muted mt-0.5">Créez une nouvelle annonce.</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-outline text-sm">🔔</button>
+        <button class="btn-primary text-sm">+ Action</button>
+      </div>
+    </header>
+    <div class="p-6">
+<div class="max-w-3xl">
+  <form class="card p-8 space-y-5">
+    <div><label class="text-sm font-medium">Titre du poste</label><input class="input mt-1" placeholder="Senior Frontend Engineer"></div>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div><label class="text-sm font-medium">Lieu</label><input class="input mt-1" placeholder="Berlin"></div>
+      <div><label class="text-sm font-medium">Type</label><select class="input mt-1"><option>CDI</option><option>CDD</option><option>Freelance</option></select></div>
+    </div>
+    <div><label class="text-sm font-medium">Description</label><textarea class="input mt-1" rows="5" placeholder="Décrivez le poste…"></textarea></div>
+    <div><label class="text-sm font-medium">Compétences requises</label><input class="input mt-1" placeholder="React, TypeScript, Node.js"></div>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div><label class="text-sm font-medium">Salaire min (€)</label><input class="input mt-1" type="number"></div>
+      <div><label class="text-sm font-medium">Salaire max (€)</label><input class="input mt-1" type="number"></div>
+    </div>
+    <div class="flex justify-end gap-2"><button type="button" class="btn-outline">Enregistrer brouillon</button><button class="btn-gold">Publier</button></div>
+  </form>
+</div></div>
+  </main>
+</div><script src="components/sh-sidebar.js"></script>
+</body></html>

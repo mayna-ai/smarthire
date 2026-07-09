@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mon CV · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="candidate" active="candidate-cv"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold">Mon CV</h1>
+        <p class="text-sm text-muted mt-0.5">Téléchargez et gérez votre CV.</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-outline text-sm">🔔</button>
+        <button class="btn-primary text-sm">+ Action</button>
+      </div>
+    </header>
+    <div class="p-6">
+<div class="grid lg:grid-cols-3 gap-5">
+  <div class="card p-8 lg:col-span-2 text-center border-2 border-dashed">
+    <div class="text-5xl mb-3">📄</div>
+    <h3 class="font-display font-semibold">Déposez votre CV</h3>
+    <p class="text-sm text-muted mt-2">PDF, DOCX — max 5 Mo. L'IA analysera vos compétences automatiquement.</p>
+    <button class="btn-gold mt-5">Choisir un fichier</button>
+  </div>
+  <div class="card p-6">
+    <h3 class="font-display font-semibold mb-3">Score IA</h3>
+    <div class="text-4xl font-display font-bold text-gold">91%</div>
+    <p class="text-sm text-muted mt-1">Profil très complet</p>
+    <div class="mt-4 space-y-2 text-sm">
+      <div class="flex justify-between"><span>Compétences</span><span class="font-semibold">95%</span></div>
+      <div class="flex justify-between"><span>Expérience</span><span class="font-semibold">88%</span></div>
+      <div class="flex justify-between"><span>Formation</span><span class="font-semibold">92%</span></div>
+    </div>
+  </div>
+</div>
+<div class="card p-6 mt-5">
+  <h3 class="font-display font-semibold mb-4">Compétences extraites par NLP</h3>
+  <div class="flex flex-wrap gap-2"><span class="badge bg-slate-100 text-slate-700">React</span><span class="badge bg-slate-100 text-slate-700">TypeScript</span><span class="badge bg-slate-100 text-slate-700">Node.js</span><span class="badge bg-slate-100 text-slate-700">GraphQL</span><span class="badge bg-slate-100 text-slate-700">PostgreSQL</span><span class="badge bg-slate-100 text-slate-700">Docker</span><span class="badge bg-slate-100 text-slate-700">AWS</span><span class="badge bg-slate-100 text-slate-700">Python</span><span class="badge bg-slate-100 text-slate-700">Figma</span><span class="badge bg-slate-100 text-slate-700">Tailwind</span><span class="badge bg-slate-100 text-slate-700">Next.js</span></div>
+</div></div>
+  </main>
+</div><script src="components/sh-sidebar.js"></script>
+</body></html>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Profil candidat · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="candidate" active="candidate-profile"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold">Mon profil</h1>
+        <p class="text-sm text-muted mt-0.5">Mettez à jour vos informations.</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-outline text-sm">🔔</button>
+        <button class="btn-primary text-sm">+ Action</button>
+      </div>
+    </header>
+    <div class="p-6">
+<div class="grid lg:grid-cols-3 gap-5">
+  <div class="card p-6 text-center">
+    <div class="h-24 w-24 rounded-full bg-navy text-white flex items-center justify-center font-display text-3xl font-bold mx-auto">JD</div>
+    <h3 class="font-display font-semibold mt-4">Jane Doe</h3>
+    <p class="text-sm text-muted">Senior Frontend Engineer</p>
+    <button class="btn-outline w-full mt-4">Changer la photo</button>
+  </div>
+  <div class="card p-6 lg:col-span-2">
+    <h3 class="font-display font-semibold mb-4">Informations personnelles</h3>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div><label class="text-sm font-medium">Prénom</label><input class="input mt-1" value="Jane"></div>
+      <div><label class="text-sm font-medium">Nom</label><input class="input mt-1" value="Doe"></div>
+      <div><label class="text-sm font-medium">Email</label><input class="input mt-1" value="jane@example.com"></div>
+      <div><label class="text-sm font-medium">Téléphone</label><input class="input mt-1" value="+33 6 12 34 56 78"></div>
+      <div class="sm:col-span-2"><label class="text-sm font-medium">Bio</label><textarea class="input mt-1" rows="3">Développeuse passionnée par les interfaces accessibles.</textarea></div>
+    </div>
+    <div class="flex justify-end gap-2 mt-5"><button class="btn-outline">Annuler</button><button class="btn-primary">Enregistrer</button></div>
+  </div>
+</div></div>
+  </main>
+</div><script src="components/sh-sidebar.js"></script>
+</body></html>
