@@ -1,6 +1,4 @@
 <?php
-// Configuration de connexion à la base MySQL (XAMPP par défaut).
-// En production, remplacer ces valeurs par des variables d'environnement.
 
 return [
     'host'    => getenv('DB_HOST') ?: '127.0.0.1',
