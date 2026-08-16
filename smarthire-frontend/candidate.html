@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tableau candidat · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/api.js"></script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="candidate" active="candidate"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 id="dash-greeting" class="font-display text-2xl font-bold">Chargement…</h1>
+        <p class="text-sm text-muted mt-0.5">Voici votre vue d'ensemble.</p>
+      </div>
+      <div class="flex gap-2">
+        <a href="candidate-notifications.html" class="btn-outline text-sm">🔔</a>
+        <a href="jobs.html" class="btn-primary text-sm">+ Postuler</a>
+      </div>
+    </header>
+    <div class="p-6">
+
+<!-- DEBUG : console visible sur la page -->
+<div id="debug-console" class="mb-4 p-3 bg-slate-900 text-green-400 font-mono text-xs rounded-lg hidden">
+  <p class="font-bold text-white mb-1">🔧 Debug :</p>
+  <div id="debug-logs"></div>
+</div>
+
+<!-- État : chargement -->
+<div id="state-loading">
+  <p class="text-sm text-muted mb-4">Chargement de vos données…</p>
+  <div class="animate-pulse space-y-4">
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="card p-5 h-24 bg-slate-100 rounded-xl"></div>
+      <div class="card p-5 h-24 bg-slate-100 rounded-xl"></div>
+      <div class="card p-5 h-24 bg-slate-100 rounded-xl"></div>
+      <div class="card p-5 h-24 bg-slate-100 rounded-xl"></div>
+    </div>
+  </div>
+</div>
+
+<!-- État : erreur -->
+<div id="state-error" class="hidden">
+  <div class="rounded-lg bg-red-50 border border-red-200 text-red-700 p-4 mb-4">
+    <p id="error-message" class="font-medium">Erreur</p>
+    <p id="error-detail" class="text-sm mt-1"></p>
+    <div class="mt-3 flex gap-2">
+      <a href="login.html" class="btn-primary text-sm">Se reconnecter</a>
+      <button onclick="location.reload()" class="btn-outline text-sm">Réessayer</button>
+    </div>
+  </div>
+</div>
+
+<!-- État : succès -->
+<div id="state-content" class="hidden">
+
+<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="card p-5">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-xs uppercase tracking-wider text-muted font-medium">Candidatures</p>
+        <p id="kpi-applications" class="mt-2 text-3xl font-display font-bold">0</p>
+        <p id="kpi-applications-delta" class="mt-1 text-xs text-success font-medium">—</p>
+      </div>
+      <div class="h-10 w-10 rounded-xl bg-navy/10 text-navy flex items-center justify-center">📨</div>
+    </div>
+  </div>
+  <div class="card p-5">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-xs uppercase tracking-wider text-muted font-medium">Profil vu</p>
+        <p id="kpi-views" class="mt-2 text-3xl font-display font-bold">0</p>
+        <p id="kpi-views-delta" class="mt-1 text-xs text-success font-medium">—</p>
+      </div>
+      <div class="h-10 w-10 rounded-xl bg-gold/10 text-gold flex items-center justify-center">👁</div>
+    </div>
+  </div>
+  <div class="card p-5">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-xs uppercase tracking-wider text-muted font-medium">Score IA</p>
+        <p id="kpi-score" class="mt-2 text-3xl font-display font-bold">—</p>
+        <p id="kpi-score-label" class="mt-1 text-xs text-success font-medium">—</p>
+      </div>
+      <div class="h-10 w-10 rounded-xl bg-gold/10 text-gold flex items-center justify-center">✨</div>
+    </div>
+  </div>
+  <div class="card p-5">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-xs uppercase tracking-wider text-muted font-medium">Entretiens</p>
+        <p id="kpi-interviews" class="mt-2 text-3xl font-display font-bold">0</p>
+        <p id="kpi-interviews-delta" class="mt-1 text-xs text-success font-medium">—</p>
+      </div>
+      <div class="h-10 w-10 rounded-xl bg-success/10 text-success flex items-center justify-center">📅</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid lg:grid-cols-3 gap-5">
+  <div class="card p-6 lg:col-span-2">
+    <h3 class="font-display font-semibold mb-4">Recommandations IA pour vous</h3>
+    <div id="reco-list" class="space-y-3">
+      <p class="text-sm text-muted">Chargement des recommandations…</p>
+    </div>
+  </div>
+  <div class="card p-6">
+    <h3 class="font-display font-semibold mb-4">Activité récente</h3>
+    <ul id="activity-list" class="space-y-3 text-sm">
+      <li class="text-muted">Chargement…</li>
+    </ul>
+  </div>
+</div>
+
+</div>
+</div>
+  </main>
+</div>
+<script src="components/sh-sidebar.js"></script>
+<script>
+/* ============================================================
+   TABLEAU DE BORD CANDIDAT — VERSION DEBUG
+   ============================================================ */
+
+// Debug visible sur la page
+const debugEl = document.getElementById('debug-console');
+const debugLogs = document.getElementById('debug-logs');
+
+function log(msg) {
+  console.log('[DEBUG]', msg);
+  if (debugEl && debugLogs) {
+    debugEl.classList.remove('hidden');
+    debugLogs.innerHTML += '<div>• ' + msg + '</div>';
+  }
+}
+
+// État de l'interface
+const UI = {
+  loading: document.getElementById('state-loading'),
+  error:   document.getElementById('state-error'),
+  content: document.getElementById('state-content'),
+};
+
+function showLoading() {
+  UI.loading.classList.remove('hidden');
+  UI.error.classList.add('hidden');
+  UI.content.classList.add('hidden');
+}
+
+function showError(title, detail) {
+  UI.loading.classList.add('hidden');
+  UI.error.classList.remove('hidden');
+  UI.content.classList.add('hidden');
+  document.getElementById('error-message').textContent = title;
+  document.getElementById('error-detail').textContent = detail || '';
+}
+
+function showContent() {
+  UI.loading.classList.add('hidden');
+  UI.error.classList.add('hidden');
+  UI.content.classList.remove('hidden');
+}
+
+// Vérification auth
+log('Vérification auth...');
+log('Token présent: ' + (SmartHireAPI.getToken() ? 'OUI' : 'NON'));
+log('User présent: ' + (SmartHireAPI.getUser() ? 'OUI' : 'NON'));
+
+if (!SmartHireAPI.isLoggedIn()) {
+  log('PAS CONNECTE -> redirection login');
+  showError('Non connecté', 'Redirection vers la page de connexion...');
+  setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+} else {
+  const user = SmartHireAPI.getUser();
+  log('Role: ' + (user ? user.role : 'aucun'));
+
+  if (user && user.role !== 'candidate') {
+    log('MAUVAIS ROLE -> redirection');
+    showError('Accès refusé', 'Redirection vers votre tableau de bord...');
+    setTimeout(() => { SmartHireAPI.redirectByRole(user.role); }, 1500);
+  } else {
+    log('Auth OK, lancement loadDashboard');
+    loadDashboard();
+  }
+}
+
+async function loadDashboard() {
+  log('=== loadDashboard() démarré ===');
+  showLoading();
+
+  try {
+    // ========== 1. PROFIL CANDIDAT ==========
+    log('Étape 1: Appel api/candidates/me');
+    let candidate;
+    try {
+      candidate = await SmartHireAPI.request('api/candidates/me');
+      log('✓ Profil reçu: ' + (candidate.first_name || 'sans prénom'));
+    } catch (e) {
+      log('✗ Erreur profil: ' + e.message);
+      if (e.message.includes('Invalid') || e.message.includes('expired') || e.message.includes('Session')) {
+        SmartHireAPI.clearSession();
+        showError('Session expirée', 'Veuillez vous reconnecter.');
+        setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+        return;
+      }
+      throw e;
+    }
+
+    const firstName = candidate.first_name || 'Candidat';
+    document.getElementById('dash-greeting').textContent = 'Bonjour, ' + firstName + ' 👋';
+
+    // ========== 2. CANDIDATURES ==========
+    log('Étape 2: Appel api/applications/me');
+    let totalApps = 0;
+    let allApplications = [];
+    try {
+      const appsResult = await SmartHireAPI.request('api/applications/me?per_page=50');
+      allApplications = appsResult.data || [];
+      totalApps = appsResult.meta ? appsResult.meta.total : allApplications.length;
+      log('✓ Candidatures: ' + totalApps);
+    } catch (e) {
+      log('✗ Erreur candidatures: ' + e.message);
+    }
+
+    document.getElementById('kpi-applications').textContent = totalApps;
+    document.getElementById('kpi-applications-delta').textContent = totalApps > 0 
+      ? totalApps + ' envoyée' + (totalApps > 1 ? 's' : '') 
+      : 'Aucune pour l'instant';
+
+    // ========== 3. SCORE IA ==========
+    log('Étape 3: Calcul score IA');
+    let scoreLabel = 'Complétez votre CV';
+    let scoreValue = '—';
+    if (candidate.parsed_cv_data) {
+      try {
+        const parsed = typeof candidate.parsed_cv_data === 'string' 
+          ? JSON.parse(candidate.parsed_cv_data) 
+          : candidate.parsed_cv_data;
+        const skills = parsed.skills || [];
+        if (skills.length > 0) {
+          scoreValue = Math.min(95, 60 + skills.length * 5) + '%';
+          scoreLabel = skills.length >= 5 ? 'Excellent' : (skills.length >= 3 ? 'Bon' : 'À compléter');
+        }
+        log('✓ Score: ' + scoreValue + ' (' + skills.length + ' skills)');
+      } catch (e) {
+        log('✗ Erreur parsing CV: ' + e.message);
+      }
+    } else {
+      log('Pas de parsed_cv_data');
+    }
+    document.getElementById('kpi-score').textContent = scoreValue;
+    document.getElementById('kpi-score-label').textContent = scoreLabel;
+
+    // ========== 4. PROFILS VUS ==========
+    log('Étape 4: Calcul vues profil');
+    let views = 0;
+    if (candidate.parsed_cv_data) {
+      try {
+        const parsed = typeof candidate.parsed_cv_data === 'string' 
+          ? JSON.parse(candidate.parsed_cv_data) 
+          : candidate.parsed_cv_data;
+        views = (parsed.skills || []).length * 12;
+      } catch (e) {}
+    }
+    document.getElementById('kpi-views').textContent = views || 0;
+    document.getElementById('kpi-views-delta').textContent = views > 0 ? 'Vues estimées' : '—';
+
+    // ========== 5. ENTRETIENS ==========
+    log('Étape 5: Comptage entretiens');
+    const interviews = allApplications.filter(a => a.status === 'interview').length;
+    document.getElementById('kpi-interviews').textContent = interviews;
+    document.getElementById('kpi-interviews-delta').textContent = interviews > 0 
+      ? interviews + ' à venir' 
+      : 'Aucun entretien';
+
+    // ========== 6. RECOMMANDATIONS ==========
+    log('Étape 6: Appel api/candidates/me/recommendations');
+    try {
+      const recoResult = await SmartHireAPI.request('api/candidates/me/recommendations?limit=3');
+      log('✓ Recommandations: ' + (recoResult.data ? recoResult.data.length : 0));
+      renderRecommendations(recoResult.data || []);
+    } catch (e) {
+      log('✗ Erreur recommandations: ' + e.message);
+      document.getElementById('reco-list').innerHTML = '<p class="text-sm text-muted">Impossible de charger les recommandations.</p>';
+    }
+
+    // ========== 7. ACTIVITÉ ==========
+    log('Étape 7: Rendu activité');
+    renderActivity(allApplications);
+
+    log('=== TOUT EST CHARGE ===');
+    showContent();
+
+  } catch (err) {
+    log('✗✗✗ ERREUR GLOBALE: ' + err.message);
+    console.error('Erreur globale:', err);
+    showError('Erreur de chargement', err.message || 'Une erreur est survenue.');
+  }
+}
+
+function renderRecommendations(jobs) {
+  const container = document.getElementById('reco-list');
+  if (!jobs.length) {
+    container.innerHTML = '<p class="text-sm text-muted">Pas encore de recommandations : complétez votre CV pour que notre IA puisse évaluer les offres qui vous correspondent. <a href="candidate-cv.html" class="underline text-navy font-medium">Uploader mon CV →</a></p>';
+    return;
+  }
+  container.innerHTML = jobs.map(job => {
+    const initial = (job.company_name || '?')[0].toUpperCase();
+    const score = Math.round(job.match_score || 0);
+    let scoreClass = 'bg-slate-100 text-slate-700';
+    if (score >= 75) scoreClass = 'bg-gold/15 text-goldDark';
+    else if (score >= 50) scoreClass = 'bg-navy/15 text-navy';
+    return '<div class="flex items-center gap-4 p-3 border border-line rounded-xl hover:bg-slate-50">' +
+      '<div class="h-10 w-10 rounded-lg bg-navy text-white flex items-center justify-center font-semibold">' + initial + '</div>' +
+      '<div class="flex-1"><p class="font-semibold text-sm">' + job.title + '</p>' +
+      '<p class="text-xs text-muted">' + job.company_name + (job.location ? ' · ' + job.location : '') + '</p></div>' +
+      '<span class="badge ' + scoreClass + '">' + score + '%</span>' +
+      '<a class="btn-primary text-xs" href="job-detail.html?id=' + job.job_id + '">Voir</a></div>';
+  }).join('');
+}
+
+function renderActivity(applications) {
+  const container = document.getElementById('activity-list');
+  if (!applications.length) {
+    container.innerHTML = '<li class="text-muted">Aucune activité récente.</li>';
+    return;
+  }
+
+  const recent = applications.slice(0, 3);
+  const statusColors = {
+    submitted: 'bg-navy', shortlisted: 'bg-warning',
+    interview: 'bg-success', rejected: 'bg-danger', hired: 'bg-gold',
+  };
+  const statusLabels = {
+    submitted: 'envoyée', shortlisted: 'présélectionnée',
+    interview: 'retenue pour entretien', rejected: 'refusée', hired: 'acceptée',
+  };
+
+  container.innerHTML = recent.map(app => {
+    const color = statusColors[app.status] || 'bg-navy';
+    const date = app.applied_at 
+      ? new Date(app.applied_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+      : 'Récemment';
+    return '<li class="flex gap-3"><span class="h-2 w-2 rounded-full ' + color + ' mt-1.5 shrink-0"></span>' +
+      '<div><p class="font-medium">Candidature ' + (statusLabels[app.status] || app.status) + '</p>' +
+      '<p class="text-xs text-muted">' + (app.job_title || 'Offre') + ' — ' + date + '</p></div></li>';
+  }).join('');
+}
+</script>
+</body></html>

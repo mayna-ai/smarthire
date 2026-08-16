@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mon CV · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/api.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => SmartHireAPI.requireAuth(['candidate']));</script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="candidate" active="candidate-cv"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold">Mon CV</h1>
+        <p class="text-sm text-muted mt-0.5">Téléchargez et gérez votre CV.</p>
+      </div>
+    </header>
+    <div class="p-6">
+
+<div class="grid lg:grid-cols-3 gap-5">
+  <div id="cv-dropzone" class="card p-8 lg:col-span-2 text-center border-2 border-dashed cursor-pointer transition-colors">
+    <div class="text-5xl mb-3">📄</div>
+    <h3 class="font-display font-semibold" id="cv-dropzone-title">Déposez votre CV</h3>
+    <p class="text-sm text-muted mt-2">PDF, DOCX — 5 Mo max. L'IA analysera vos compétences automatiquement.</p>
+    <button type="button" class="btn-gold mt-5" id="cv-choose-btn">Choisir un fichier</button>
+    <input type="file" id="cv-file-input" accept=".pdf,.docx" class="hidden">
+    <p id="cv-current-file" class="text-xs text-muted mt-4 hidden"></p>
+  </div>
+  <div class="card p-6">
+    <h3 class="font-display font-semibold mb-3">Complétude du profil</h3>
+    <div class="text-4xl font-display font-bold text-gold" id="cv-completeness">—</div>
+    <p class="text-sm text-muted mt-1" id="cv-completeness-label"></p>
+    <div class="mt-4 space-y-2 text-sm" id="cv-completeness-detail"></div>
+  </div>
+</div>
+
+<div class="card p-6 mt-5">
+  <h3 class="font-display font-semibold mb-4">Compétences extraites par NLP</h3>
+  <div class="flex flex-wrap gap-2" id="cv-skills">
+    <p class="text-sm text-muted">Aucun CV analysé pour l'instant — déposez un fichier pour lancer la détection.</p>
+  </div>
+</div>
+
+</div>
+  </main>
+</div><script src="components/sh-sidebar.js"></script>
+<script>
+const dropzone = document.getElementById('cv-dropzone');
+const fileInput = document.getElementById('cv-file-input');
+const dropzoneTitle = document.getElementById('cv-dropzone-title');
+const currentFileEl = document.getElementById('cv-current-file');
+
+function badge(text) {
+  return `<span class="badge bg-slate-100 text-slate-700">${text}</span>`;
+}
+
+function renderSkills(skills) {
+  const wrap = document.getElementById('cv-skills');
+  if (!skills || !skills.length) {
+    wrap.innerHTML = '<p class="text-sm text-muted">Aucune compétence détectée pour l\'instant.</p>';
+    return;
+  }
+  wrap.innerHTML = skills.map(badge).join('');
+}
+
+function renderCompleteness(candidate, parsedCv) {
+  const checks = [
+    ['Nom & prénom', !!(candidate.first_name && candidate.last_name)],
+    ['Titre / headline', !!candidate.headline],
+    ['Localisation', !!candidate.location],
+    ['Téléphone', !!candidate.phone],
+    ["Années d'expérience", Number(candidate.years_experience) > 0],
+    ['CV déposé', !!candidate.cv_file_path],
+    ['Compétences détectées', !!(parsedCv && parsedCv.skills && parsedCv.skills.length)],
+  ];
+  const done = checks.filter(([, ok]) => ok).length;
+  const pct = Math.round((done / checks.length) * 100);
+
+  document.getElementById('cv-completeness').textContent = `${pct}%`;
+  document.getElementById('cv-completeness-label').textContent =
+    pct === 100 ? 'Profil complet' : `${checks.length - done} élément(s) à compléter`;
+  document.getElementById('cv-completeness-detail').innerHTML = checks.map(([label, ok]) => `
+    <div class="flex justify-between">
+      <span>${label}</span>
+      <span class="font-semibold ${ok ? 'text-success' : 'text-muted'}">${ok ? '✓' : '—'}</span>
+    </div>`).join('');
+}
+
+function parseCvData(candidate) {
+  if (!candidate.parsed_cv_data) return null;
+  try {
+    return typeof candidate.parsed_cv_data === 'string'
+      ? JSON.parse(candidate.parsed_cv_data)
+      : candidate.parsed_cv_data;
+  } catch {
+    return null;
+  }
+}
+
+function renderCandidate(candidate) {
+  const parsedCv = parseCvData(candidate);
+
+  if (candidate.cv_file_path) {
+    const filename = candidate.cv_file_path.split('/').pop();
+    currentFileEl.textContent = `Fichier actuel : ${filename}`;
+    currentFileEl.classList.remove('hidden');
+    dropzoneTitle.textContent = 'Remplacer votre CV';
+  }
+
+  renderSkills(parsedCv ? parsedCv.skills : []);
+  renderCompleteness(candidate, parsedCv);
+}
+
+async function loadCandidate() {
+  try {
+    const candidate = await SmartHireAPI.request('api/candidates/me');
+    renderCandidate(candidate);
+  } catch (err) {
+    document.getElementById('cv-skills').innerHTML = `<p class="text-sm text-danger">${err.message}</p>`;
+  }
+}
+
+async function handleUpload(file) {
+  if (!file) return;
+
+  const allowedExt = ['pdf', 'docx'];
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!allowedExt.includes(ext)) {
+    alert('Formats acceptés : PDF, DOCX');
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    alert('Le fichier dépasse 5 Mo');
+    return;
+  }
+
+  dropzoneTitle.textContent = 'Analyse en cours…';
+  try {
+    const result = await SmartHireAPI.uploadFile('api/candidates/me/cv', 'cv', file);
+    renderCandidate(result.candidate);
+    dropzoneTitle.textContent = result.message;
+  } catch (err) {
+    dropzoneTitle.textContent = 'Déposez votre CV';
+    alert(err.message);
+  }
+}
+
+document.getElementById('cv-choose-btn').addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('click', (e) => {
+  if (e.target.id !== 'cv-choose-btn') fileInput.click();
+});
+fileInput.addEventListener('change', () => handleUpload(fileInput.files[0]));
+
+['dragenter', 'dragover'].forEach((evt) => {
+  dropzone.addEventListener(evt, (e) => {
+    e.preventDefault();
+    dropzone.classList.add('border-gold');
+  });
+});
+['dragleave', 'drop'].forEach((evt) => {
+  dropzone.addEventListener(evt, (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('border-gold');
+  });
+});
+dropzone.addEventListener('drop', (e) => {
+  const file = e.dataTransfer.files[0];
+  handleUpload(file);
+});
+
+document.addEventListener('DOMContentLoaded', loadCandidate);
+</script>
+</body></html>

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Classement IA · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/api.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => SmartHireAPI.requireAuth(['recruiter']));</script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="recruiter" active="recruiter-ranking"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold">Classement IA</h1>
+        <p class="text-sm text-muted mt-0.5">Candidats triés par score de correspondance NLP.</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-outline text-sm">🔔</button>
+      </div>
+    </header>
+    <div class="p-6">
+<div class="card p-5 mb-5 flex gap-3">
+  <select id="job-select" class="input max-w-md"><option value="">Chargement de vos offres…</option></select>
+</div>
+<p id="ranking-status" class="text-sm text-muted">Sélectionnez une offre pour voir le classement.</p>
+<div class="card overflow-hidden hidden" id="ranking-table-wrap">
+  <table class="w-full">
+    <thead class="bg-slate-50 border-b border-line text-xs uppercase tracking-wider text-muted">
+      <tr><th class="px-5 py-3 text-left">Rang</th><th class="px-5 py-3 text-left">Candidat</th><th class="px-5 py-3 text-left">Score IA</th><th class="px-5 py-3 text-left">Compétences</th><th class="px-5 py-3 text-left">Expérience</th><th></th></tr>
+    </thead>
+    <tbody id="ranking-body" class="divide-y divide-line text-sm"></tbody>
+  </table>
+</div></div>
+  </main>
+</div><script src="components/sh-sidebar.js"></script>
+<script>
+function initials(first, last) {
+  return `${(first || '?')[0]}${(last || '?')[0]}`.toUpperCase();
+}
+
+function renderRow(app, rank) {
+  const score = app.match_score !== null && app.match_score !== undefined ? Number(app.match_score) : null;
+  const scoreLabel = score !== null ? `${score}%` : '—';
+  const skills = app.skills_summary
+    ? app.skills_summary.split(/\s+/).filter(Boolean).slice(0, 3).join(', ')
+    : 'Aucune compétence détectée (CV non analysé)';
+  const experience = app.years_experience ? `${app.years_experience} ans` : '—';
+
+  return `
+    <tr class="hover:bg-slate-50">
+      <td class="px-5 py-4 font-display font-bold text-lg">#${rank}</td>
+      <td class="px-5 py-4"><div class="flex gap-3 items-center"><div class="h-9 w-9 rounded-full bg-navy text-white flex items-center justify-center font-semibold text-xs">${initials(app.first_name, app.last_name)}</div><div><p class="font-semibold">${app.first_name} ${app.last_name}</p><p class="text-xs text-muted">${app.location || '—'}</p></div></div></td>
+      <td class="px-5 py-4"><div class="flex items-center gap-2"><div class="w-24 h-2 bg-slate-200 rounded-full overflow-hidden"><div class="h-full gradient-gold" style="width:${score ?? 0}%"></div></div><span class="font-semibold">${scoreLabel}</span></div></td>
+      <td class="px-5 py-4 text-xs">${skills}</td>
+      <td class="px-5 py-4">${experience}</td>
+      <td class="px-5 py-4 text-right"><a href="recruiter-candidates.html" class="btn-outline text-xs">Voir</a></td>
+    </tr>`;
+}
+
+async function loadJobOptions() {
+  const select = document.getElementById('job-select');
+  try {
+    const { data } = await SmartHireAPI.request('api/jobs/mine?per_page=50');
+    if (!data.length) {
+      select.innerHTML = '<option value="">Aucune offre publiée</option>';
+      document.getElementById('ranking-status').textContent = "Vous n'avez pas encore publié d'offre.";
+      return;
+    }
+    select.innerHTML = data.map(job => `<option value="${job.id}">${job.title}</option>`).join('');
+    loadRanking(select.value);
+  } catch (err) {
+    select.innerHTML = '<option value="">Erreur de chargement</option>';
+    document.getElementById('ranking-status').textContent = err.message;
+  }
+}
+
+async function loadRanking(jobId) {
+  const status = document.getElementById('ranking-status');
+  const wrap = document.getElementById('ranking-table-wrap');
+  const body = document.getElementById('ranking-body');
+  wrap.classList.add('hidden');
+  body.innerHTML = '';
+  if (!jobId) return;
+
+  status.textContent = 'Chargement du classement…';
+  status.classList.remove('hidden');
+
+  try {
+    // Déjà trié par match_score DESC côté backend (voir ApplicationRepository::paginateForJobOffer)
+    const { data } = await SmartHireAPI.request(`api/jobs/${jobId}/applications?per_page=50`);
+    if (!data.length) {
+      status.textContent = 'Aucune candidature reçue pour cette offre pour le moment.';
+      return;
+    }
+    status.classList.add('hidden');
+    body.innerHTML = data.map((app, i) => renderRow(app, i + 1)).join('');
+    wrap.classList.remove('hidden');
+  } catch (err) {
+    status.textContent = err.message;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadJobOptions);
+document.getElementById('job-select').addEventListener('change', (e) => loadRanking(e.target.value));
+</script>
+</body></html>

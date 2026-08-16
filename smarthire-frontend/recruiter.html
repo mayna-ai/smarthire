@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tableau recruteur · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/api.js"></script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="recruiter" active="recruiter"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 id="dash-greeting" class="font-display text-2xl font-bold">Chargement…</h1>
+        <p class="text-sm text-muted mt-0.5">Vue d'ensemble du recrutement.</p>
+      </div>
+      <div class="flex gap-2">
+        <a href="recruiter-jobs-new.html" class="btn-primary text-sm">+ Nouvelle offre</a>
+      </div>
+    </header>
+    <div class="p-6">
+
+<p id="dash-status" class="text-sm text-muted mb-4">Chargement de vos données…</p>
+<div id="dash-error" class="hidden rounded-lg bg-red-50 text-red-700 text-sm p-4 mb-4"></div>
+<div id="dash-content" class="hidden">
+
+<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="card p-5">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-xs uppercase tracking-wider text-muted font-medium">Offres actives</p>
+        <p id="kpi-jobs" class="mt-2 text-3xl font-display font-bold">—</p>
+        <p id="kpi-jobs-delta" class="mt-1 text-xs text-success font-medium">—</p>
+      </div>
+      <div class="h-10 w-10 rounded-xl bg-navy/10 text-navy flex items-center justify-center">💼</div>
+    </div>
+  </div>
+  <div class="card p-5">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-xs uppercase tracking-wider text-muted font-medium">Candidats</p>
+        <p id="kpi-candidates" class="mt-2 text-3xl font-display font-bold">—</p>
+        <p id="kpi-candidates-delta" class="mt-1 text-xs text-success font-medium">—</p>
+      </div>
+      <div class="h-10 w-10 rounded-xl bg-gold/10 text-gold flex items-center justify-center">👥</div>
+    </div>
+  </div>
+  <div class="card p-5">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-xs uppercase tracking-wider text-muted font-medium">Score moyen</p>
+        <p id="kpi-avg-score" class="mt-2 text-3xl font-display font-bold">—</p>
+        <p id="kpi-avg-score-label" class="mt-1 text-xs text-success font-medium">—</p>
+      </div>
+      <div class="h-10 w-10 rounded-xl bg-success/10 text-success flex items-center justify-center">✨</div>
+    </div>
+  </div>
+  <div class="card p-5">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-xs uppercase tracking-wider text-muted font-medium">Embauches</p>
+        <p id="kpi-hired" class="mt-2 text-3xl font-display font-bold">—</p>
+        <p id="kpi-hired-delta" class="mt-1 text-xs text-success font-medium">—</p>
+      </div>
+      <div class="h-10 w-10 rounded-xl bg-navy/10 text-navy flex items-center justify-center">🤝</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid lg:grid-cols-3 gap-5">
+  <div class="card p-6 lg:col-span-2">
+    <h3 class="font-display font-semibold mb-4">Pipeline en cours</h3>
+    <div id="pipeline-list" class="space-y-3">
+      <p class="text-sm text-muted">Chargement de vos offres…</p>
+    </div>
+  </div>
+  <div class="card p-6">
+    <h3 class="font-display font-semibold mb-4">Top candidats IA</h3>
+    <ul id="top-candidates" class="space-y-3 text-sm">
+      <li class="text-muted">Chargement…</li>
+    </ul>
+  </div>
+</div>
+
+</div>
+</div>
+  </main>
+</div>
+<script src="components/sh-sidebar.js"></script>
+<script>
+// Vérifier l'authentification au chargement
+if (!SmartHireAPI.isLoggedIn()) {
+  window.location.href = 'login.html';
+}
+
+const user = SmartHireAPI.getUser();
+if (user && user.role !== 'recruiter') {
+  SmartHireAPI.redirectByRole(user.role);
+}
+
+async function loadDashboard() {
+  const status = document.getElementById('dash-status');
+  const content = document.getElementById('dash-content');
+  const errorBox = document.getElementById('dash-error');
+
+  try {
+    // 1. Profil recruteur
+    const recruiter = await SmartHireAPI.request('api/recruiters/me');
+    const firstName = recruiter.first_name || 'Recruteur';
+    document.getElementById('dash-greeting').textContent = `Bonjour, ${firstName} 👋`;
+
+    // 2. Analytics
+    let kpis = {};
+    try {
+      const analytics = await SmartHireAPI.request('api/recruiter/analytics');
+      kpis = analytics.kpis || {};
+    } catch (e) {
+      // Si analytics échoue, on continue avec des valeurs par défaut
+    }
+
+    document.getElementById('kpi-jobs').textContent = kpis.active_jobs || 0;
+    document.getElementById('kpi-jobs-delta').textContent = (kpis.active_jobs || 0) > 0 
+      ? `${kpis.active_jobs} offre${(kpis.active_jobs || 0) > 1 ? 's' : ''} active${(kpis.active_jobs || 0) > 1 ? 's' : ''}` 
+      : 'Aucune offre active';
+
+    document.getElementById('kpi-candidates').textContent = kpis.total_applications || 0;
+    document.getElementById('kpi-candidates-delta').textContent = (kpis.total_applications || 0) > 0 
+      ? `${kpis.total_applications} candidature${(kpis.total_applications || 0) > 1 ? 's' : ''}` 
+      : 'Aucune candidature';
+
+    const avgScore = kpis.avg_match_score;
+    document.getElementById('kpi-avg-score').textContent = avgScore !== null && avgScore !== undefined ? `${avgScore}%` : '—';
+    document.getElementById('kpi-avg-score-label').textContent = avgScore !== null && avgScore !== undefined
+      ? (avgScore >= 80 ? 'Très bon' : (avgScore >= 60 ? 'Bon' : 'À améliorer')) 
+      : '—';
+
+    document.getElementById('kpi-hired').textContent = kpis.hired_count || 0;
+    document.getElementById('kpi-hired-delta').textContent = (kpis.hired_count || 0) > 0 
+      ? `${kpis.hired_count} recrutement${(kpis.hired_count || 0) > 1 ? 's' : ''}` 
+      : 'Aucune embauche';
+
+    // 3. Pipeline (mes offres)
+    let jobs = [];
+    try {
+      const jobsResult = await SmartHireAPI.request('api/jobs/mine?per_page=10');
+      jobs = jobsResult.data || [];
+    } catch (e) {}
+    renderPipeline(jobs);
+
+    // 4. Top candidats IA
+    if (jobs.length > 0) {
+      const topJob = jobs.reduce((a, b) => ((a.applications_count || 0) > (b.applications_count || 0) ? a : b), jobs[0]);
+      if ((topJob.applications_count || 0) > 0) {
+        try {
+          const appsResult = await SmartHireAPI.request(`api/jobs/${topJob.id}/applications?per_page=3`);
+          renderTopCandidates(appsResult.data || [], topJob.title);
+        } catch (e) {
+          document.getElementById('top-candidates').innerHTML = '<li class="text-muted">Impossible de charger les candidats.</li>';
+        }
+      } else {
+        document.getElementById('top-candidates').innerHTML = '<li class="text-muted">Aucune candidature reçue pour le moment. Publiez une offre pour commencer !</li>';
+      }
+    } else {
+      document.getElementById('top-candidates').innerHTML = '<li class="text-muted">Aucune offre publiée. <a href="recruiter-jobs-new.html" class="underline text-navy">Créer une offre →</a></li>';
+    }
+
+    status.classList.add('hidden');
+    content.classList.remove('hidden');
+  } catch (err) {
+    status.classList.add('hidden');
+    errorBox.textContent = err.message;
+    errorBox.classList.remove('hidden');
+
+    // Si token invalide, proposer de se reconnecter
+    if (err.message.includes('Invalid or expired token') || err.message.includes('Session expirée')) {
+      errorBox.innerHTML = `${err.message} <a href="login.html" class="underline font-semibold">Se reconnecter →</a>`;
+      SmartHireAPI.clearSession();
+    }
+  }
+}
+
+function renderPipeline(jobs) {
+  const container = document.getElementById('pipeline-list');
+  if (!jobs.length) {
+    container.innerHTML = `<p class="text-sm text-muted">Vous n'avez pas encore créé d'offre. <a href="recruiter-jobs-new.html" class="underline text-navy font-medium">Créer votre première offre →</a></p>`;
+    return;
+  }
+
+  const activeJobs = jobs
+    .filter(j => j.status === 'published')
+    .sort((a, b) => (b.applications_count || 0) - (a.applications_count || 0))
+    .slice(0, 3);
+
+  if (!activeJobs.length) {
+    container.innerHTML = `<p class="text-sm text-muted">Aucune offre active. <a href="recruiter-jobs.html" class="underline text-navy font-medium">Gérer mes offres →</a></p>`;
+    return;
+  }
+
+  container.innerHTML = activeJobs.map((job) => {
+    const initial = (job.title || '?')[0].toUpperCase();
+    const count = job.applications_count || 0;
+    return `
+      <div class="flex items-center gap-4 p-3 border border-line rounded-xl hover:bg-slate-50">
+        <div class="h-10 w-10 rounded-lg bg-navy text-white flex items-center justify-center font-semibold">${initial}</div>
+        <div class="flex-1">
+          <p class="font-semibold text-sm">${job.title}</p>
+          <p class="text-xs text-muted">${count} candidat${count > 1 ? 's' : ''} · ${job.location || 'Lieu non précisé'}</p>
+        </div>
+        <a class="btn-outline text-xs" href="recruiter-ranking.html">Classement</a>
+      </div>`;
+  }).join('');
+}
+
+function renderTopCandidates(applications, jobTitle) {
+  const container = document.getElementById('top-candidates');
+  if (!applications.length) {
+    container.innerHTML = '<li class="text-muted">Aucun candidat pour cette offre.</li>';
+    return;
+  }
+
+  container.innerHTML = applications.slice(0, 3).map(app => {
+    const initials = `${(app.first_name || '?')[0]}${(app.last_name || '?')[0]}`.toUpperCase();
+    const score = app.match_score !== null && app.match_score !== undefined ? Math.round(app.match_score) : '—';
+    const scoreClass = typeof score === 'number' && score >= 75 ? 'bg-gold/15 text-goldDark' : 'bg-navy/10 text-navy';
+    return `
+      <li class="flex items-center gap-3">
+        <div class="h-9 w-9 rounded-full bg-navy text-white flex items-center justify-center font-semibold text-xs">${initials}</div>
+        <div class="flex-1">
+          <p class="font-medium">${app.first_name || ''} ${app.last_name || ''}</p>
+          <p class="text-xs text-muted">${app.headline || 'Profil candidat'}</p>
+        </div>
+        <span class="badge ${scoreClass}">${typeof score === 'number' ? score + '%' : score}</span>
+      </li>`;
+  }).join('');
+}
+
+document.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
+</body></html>

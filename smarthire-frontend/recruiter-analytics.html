@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Analyses · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/api.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => SmartHireAPI.requireAuth(['recruiter']));</script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="recruiter" active="recruiter-analytics"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold">Analyses</h1>
+        <p class="text-sm text-muted mt-0.5">Performance du recrutement.</p>
+      </div>
+    </header>
+    <div class="p-6">
+<p id="an-status" class="text-sm text-muted mb-4">Chargement des statistiques…</p>
+<div id="an-content" class="hidden">
+
+<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="an-kpis"></div>
+
+<div class="grid lg:grid-cols-2 gap-5 mb-5">
+  <div class="card p-6">
+    <h3 class="font-display font-semibold mb-2">Candidatures sur 30 jours</h3>
+    <svg id="an-chart" viewBox="0 0 400 150" class="w-full h-40"></svg>
+  </div>
+  <div class="card p-6">
+    <h3 class="font-display font-semibold mb-4">Répartition par statut</h3>
+    <ul class="space-y-3 text-sm" id="an-status-breakdown"></ul>
+  </div>
+</div>
+
+<div class="card p-6">
+  <h3 class="font-display font-semibold mb-4">Offres les plus demandées</h3>
+  <div id="an-top-jobs" class="divide-y divide-line"></div>
+</div>
+
+</div>
+</div>
+  </main>
+</div><script src="components/sh-sidebar.js"></script>
+<script>
+const STATUS_LABELS = {
+  submitted:   'Reçues',
+  shortlisted: 'Présélectionnées',
+  interview:   'Entretien',
+  rejected:    'Refusées',
+  hired:       'Embauchées',
+};
+
+function kpiCard(label, value, icon, cls) {
+  return `
+    <div class="card p-5">
+      <div class="flex items-start justify-between">
+        <div>
+          <p class="text-xs uppercase tracking-wider text-muted font-medium">${label}</p>
+          <p class="mt-2 text-3xl font-display font-bold">${value}</p>
+        </div>
+        <div class="h-10 w-10 rounded-xl ${cls} flex items-center justify-center">${icon}</div>
+      </div>
+    </div>`;
+}
+
+function renderKpis(kpis) {
+  const conversion = kpis.conversion_rate !== null ? `${kpis.conversion_rate}%` : '—';
+  const timeToHire = kpis.avg_time_to_hire_days !== null ? `${kpis.avg_time_to_hire_days} j` : '—';
+  const matchScore = kpis.avg_match_score !== null ? `${kpis.avg_match_score}%` : '—';
+
+  document.getElementById('an-kpis').innerHTML = [
+    kpiCard('Offres actives', kpis.active_jobs, '📋', 'bg-navy/10 text-navy'),
+    kpiCard('Candidatures reçues', kpis.total_applications, '📨', 'bg-gold/10 text-gold'),
+    kpiCard('Taux de conversion', conversion, '✅', 'bg-success/10 text-success'),
+    kpiCard('Score matching moyen', matchScore, '🎯', 'bg-navy/10 text-navy'),
+  ].join('') + (kpis.hired_count > 0
+    ? `<div class="card p-5 sm:col-span-2 lg:col-span-4"><p class="text-sm text-muted">Délai moyen jusqu'à l'embauche : <span class="font-semibold text-slate-900">${timeToHire}</span> (sur ${kpis.hired_count} candidature${kpis.hired_count > 1 ? 's' : ''} acceptée${kpis.hired_count > 1 ? 's' : ''})</p></div>`
+    : '');
+}
+
+function renderChart(series) {
+  const svg = document.getElementById('an-chart');
+  const counts = series.map((d) => d.count);
+  const max = Math.max(1, ...counts);
+  const w = 400, h = 150, step = w / (series.length - 1 || 1);
+
+  const points = series.map((d, i) => {
+    const x = Math.round(i * step);
+    const y = Math.round(h - (d.count / max) * (h - 10) - 2);
+    return `${x},${y}`;
+  }).join(' ');
+
+  if (counts.every((c) => c === 0)) {
+    svg.innerHTML = `<text x="200" y="78" text-anchor="middle" class="fill-slate-400" font-size="13">Pas encore de candidatures sur cette période</text>`;
+    return;
+  }
+
+  svg.innerHTML = `
+    <polyline fill="none" stroke="#D4AF37" stroke-width="3" points="${points}"/>
+    <polyline fill="rgba(212,175,55,0.15)" stroke="none" points="${points} ${w},${h} 0,${h}"/>
+  `;
+}
+
+function renderStatusBreakdown(breakdown) {
+  const total = Object.values(breakdown).reduce((a, b) => a + b, 0);
+  const wrap = document.getElementById('an-status-breakdown');
+
+  if (total === 0) {
+    wrap.innerHTML = '<p class="text-sm text-muted">Aucune candidature pour l\'instant.</p>';
+    return;
+  }
+
+  wrap.innerHTML = Object.entries(breakdown).map(([status, count]) => {
+    const pct = total ? Math.round((count / total) * 100) : 0;
+    return `
+      <li>
+        <div class="flex justify-between mb-1"><span>${STATUS_LABELS[status] || status}</span><span class="font-semibold">${count} (${pct}%)</span></div>
+        <div class="h-2 bg-slate-200 rounded-full overflow-hidden"><div class="h-full bg-navy" style="width:${pct}%"></div></div>
+      </li>`;
+  }).join('');
+}
+
+function renderTopJobs(jobs) {
+  const wrap = document.getElementById('an-top-jobs');
+  if (!jobs.length) {
+    wrap.innerHTML = '<p class="text-sm text-muted py-2">Aucune offre publiée pour l\'instant.</p>';
+    return;
+  }
+  wrap.innerHTML = jobs.map((j) => `
+    <a href="job-detail.html?id=${j.id}" class="flex items-center justify-between py-3 hover:bg-slate-50 -mx-2 px-2 rounded-lg">
+      <div>
+        <p class="font-medium text-sm">${j.title}</p>
+        <p class="text-xs text-muted">${j.status === 'published' ? 'Publiée' : j.status === 'draft' ? 'Brouillon' : 'Clôturée'}</p>
+      </div>
+      <span class="badge bg-navy/10 text-navy">${j.applications_count} candidature${j.applications_count > 1 ? 's' : ''}</span>
+    </a>`).join('');
+}
+
+async function loadAnalytics() {
+  const status = document.getElementById('an-status');
+  const content = document.getElementById('an-content');
+
+  try {
+    const stats = await SmartHireAPI.request('api/recruiter/analytics');
+
+    renderKpis(stats.kpis);
+    renderChart(stats.applications_last_30_days);
+    renderStatusBreakdown(stats.status_breakdown);
+    renderTopJobs(stats.top_jobs);
+
+    status.classList.add('hidden');
+    content.classList.remove('hidden');
+  } catch (err) {
+    status.textContent = err.message;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadAnalytics);
+</script>
+</body></html>

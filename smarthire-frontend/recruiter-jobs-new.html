@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nouvelle offre · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/api.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => SmartHireAPI.requireAuth(['recruiter']));</script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="recruiter" active="recruiter-jobs"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold">Nouvelle offre</h1>
+        <p class="text-sm text-muted mt-0.5">Créez une nouvelle annonce.</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-outline text-sm">🔔</button>
+        <button class="btn-primary text-sm">+ Action</button>
+      </div>
+    </header>
+    <div class="p-6">
+<div class="max-w-3xl">
+  <p id="job-form-error" class="hidden text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4"></p>
+  <p id="job-form-success" class="hidden text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4"></p>
+  <form id="job-form" class="card p-8 space-y-5">
+    <div><label class="text-sm font-medium">Titre du poste</label><input id="job-title" class="input mt-1" placeholder="Senior Frontend Engineer" required></div>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div><label class="text-sm font-medium">Lieu</label><input id="job-location" class="input mt-1" placeholder="Berlin"></div>
+      <div><label class="text-sm font-medium">Type</label>
+        <select id="job-contract-type" class="input mt-1">
+          <option value="CDI">CDI</option><option value="CDD">CDD</option><option value="Freelance">Freelance</option>
+          <option value="Stage">Stage</option><option value="Alternance">Alternance</option>
+        </select>
+      </div>
+    </div>
+    <div><label class="text-sm font-medium">Description</label><textarea id="job-description" class="input mt-1" rows="5" placeholder="Décrivez le poste…" required></textarea></div>
+    <div><label class="text-sm font-medium">Compétences requises</label><input id="job-skills" class="input mt-1" placeholder="React, TypeScript, Node.js"></div>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div><label class="text-sm font-medium">Salaire min (€)</label><input class="input mt-1" type="number"></div>
+      <div><label class="text-sm font-medium">Salaire max (€)</label><input class="input mt-1" type="number"></div>
+    </div>
+    <div class="flex justify-end gap-2">
+      <button type="button" id="job-save-draft" class="btn-outline">Enregistrer brouillon</button>
+      <button type="button" id="job-publish" class="btn-gold">Publier</button>
+    </div>
+  </form>
+</div></div>
+  </main>
+</div><script src="components/sh-sidebar.js"></script>
+<script>
+async function submitJob(status) {
+  const errorBox = document.getElementById('job-form-error');
+  const successBox = document.getElementById('job-form-success');
+  errorBox.classList.add('hidden');
+  successBox.classList.add('hidden');
+
+  const skillsRaw = document.getElementById('job-skills').value.trim();
+  const payload = {
+    title: document.getElementById('job-title').value.trim(),
+    location: document.getElementById('job-location').value.trim(),
+    contract_type: document.getElementById('job-contract-type').value,
+    description: document.getElementById('job-description').value.trim(),
+    required_skills: skillsRaw ? skillsRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
+    status,
+  };
+
+  try {
+    await SmartHireAPI.request('api/jobs', { method: 'POST', body: payload });
+    successBox.textContent = status === 'published' ? 'Offre publiée avec succès.' : 'Brouillon enregistré.';
+    successBox.classList.remove('hidden');
+    document.getElementById('job-form').reset();
+  } catch (err) {
+    errorBox.textContent = err.message;
+    errorBox.classList.remove('hidden');
+  }
+}
+
+document.getElementById('job-save-draft').addEventListener('click', () => submitJob('draft'));
+document.getElementById('job-publish').addEventListener('click', () => submitJob('published'));
+</script>
+</body></html>

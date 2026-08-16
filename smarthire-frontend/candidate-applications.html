@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Candidatures · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/api.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => SmartHireAPI.requireAuth(['candidate']));</script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="candidate" active="candidate-applications"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold">Mes candidatures</h1>
+        <p class="text-sm text-muted mt-0.5">Suivez l'état de vos postulations.</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-outline text-sm">🔔</button>
+        <button class="btn-primary text-sm">+ Action</button>
+      </div>
+    </header>
+    <div class="p-6">
+<p id="apps-status" class="text-sm text-muted mb-4">Chargement de vos candidatures…</p>
+<div id="apps-table-wrap" class="card overflow-hidden hidden">
+  <table class="w-full">
+    <thead class="bg-slate-50 border-b border-line text-xs uppercase tracking-wider text-muted">
+      <tr><th class="px-5 py-3 text-left">Poste</th><th class="px-5 py-3 text-left">Entreprise</th><th class="px-5 py-3 text-left">Statut</th><th class="px-5 py-3 text-left">Score</th><th class="px-5 py-3 text-left">Date</th></tr>
+    </thead>
+    <tbody id="apps-tbody" class="divide-y divide-line text-sm"></tbody>
+  </table>
+</div></div>
+  </main>
+</div><script src="components/sh-sidebar.js"></script>
+<script>
+// Statut renvoyé par l'API -> libellé affiché + classes de badge
+const STATUS_MAP = {
+  submitted:   { label: 'Envoyée',  cls: 'bg-navy/10 text-navy' },
+  shortlisted: { label: 'Présélectionnée', cls: 'bg-warning/15 text-warning' },
+  interview:   { label: 'Entretien', cls: 'bg-success/15 text-success' },
+  rejected:    { label: 'Refusée',  cls: 'bg-danger/15 text-danger' },
+  hired:       { label: 'Recrutée', cls: 'bg-gold/15 text-goldDark' },
+};
+
+function formatDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function renderRow(app) {
+  const status = STATUS_MAP[app.status] || { label: app.status, cls: 'bg-slate-100 text-slate-700' };
+  const score = app.match_score !== null && app.match_score !== undefined ? `${app.match_score}%` : '—';
+  return `
+    <tr class="hover:bg-slate-50">
+      <td class="px-5 py-4 font-semibold">${app.job_title}</td>
+      <td class="px-5 py-4">${app.company_name}</td>
+      <td class="px-5 py-4"><span class="badge ${status.cls}">${status.label}</span></td>
+      <td class="px-5 py-4 font-medium">${score}</td>
+      <td class="px-5 py-4 text-muted">${formatDate(app.applied_at)}</td>
+    </tr>`;
+}
+
+async function loadApplications() {
+  const status = document.getElementById('apps-status');
+  const wrap = document.getElementById('apps-table-wrap');
+  const tbody = document.getElementById('apps-tbody');
+
+  try {
+    const { data } = await SmartHireAPI.request('api/applications/me?per_page=50');
+
+    if (!data.length) {
+      status.textContent = "Vous n'avez pas encore postulé à une offre. Direction jobs.html pour commencer !";
+      return;
+    }
+    tbody.innerHTML = data.map(renderRow).join('');
+    status.classList.add('hidden');
+    wrap.classList.remove('hidden');
+  } catch (err) {
+    status.textContent = err.message;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadApplications);
+</script>
+</body></html>

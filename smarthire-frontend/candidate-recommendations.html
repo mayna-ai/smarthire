@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recommandations · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/api.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => SmartHireAPI.requireAuth(['candidate']));</script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="candidate" active="candidate-recommendations"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold">Recommandations IA</h1>
+        <p class="text-sm text-muted mt-0.5">Offres ciblées par notre moteur NLP.</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-outline text-sm">🔔</button>
+        <button class="btn-primary text-sm">+ Action</button>
+      </div>
+    </header>
+    <div class="p-6">
+<p id="reco-status" class="text-sm text-muted mb-4">Calcul des recommandations…</p>
+<div id="reco-grid" class="grid md:grid-cols-2 xl:grid-cols-3 gap-5 hidden"></div>
+</div>
+  </main>
+</div><script src="components/sh-sidebar.js"></script>
+<script>
+function scoreBadgeClass(score) {
+  if (score >= 75) return 'bg-gold/15 text-goldDark';
+  if (score >= 50) return 'bg-navy/15 text-navy';
+  return 'bg-slate-100 text-slate-700';
+}
+
+function renderRecommendation(job) {
+  const score = Math.round(job.match_score);
+  const highlight = job.matched_skills.length
+    ? job.matched_skills.join(', ')
+    : (job.required_skills || []).slice(0, 2).join(', ');
+  const badges = (job.matched_skills.length ? job.matched_skills : (job.required_skills || []).slice(0, 3))
+    .map((s) => `<span class="badge bg-slate-100 text-slate-700">${s}</span>`)
+    .join('');
+
+  return `
+    <a href="job-detail.html?id=${job.job_id}" class="card p-5 hover:shadow-lg transition">
+      <div class="flex justify-between">
+        <div>
+          <p class="font-display font-semibold">${job.title}</p>
+          <p class="text-xs text-muted">${job.company_name}${job.location ? ' · ' + job.location : ''}</p>
+        </div>
+        <span class="badge ${scoreBadgeClass(score)}">${score}%</span>
+      </div>
+      <p class="text-sm text-muted mt-3 line-clamp-2">${highlight ? `Notre IA estime que ce poste correspond bien à votre profil grâce aux compétences ${highlight}.` : "Notre IA estime que ce poste correspond à votre profil."}</p>
+      <div class="mt-3 flex flex-wrap gap-1">${badges}</div>
+    </a>`;
+}
+
+async function loadRecommendations() {
+  const status = document.getElementById('reco-status');
+  const grid = document.getElementById('reco-grid');
+
+  try {
+    const { data } = await SmartHireAPI.request('api/candidates/me/recommendations?limit=9');
+
+    if (!data.length) {
+      status.innerHTML = "Pas encore de recommandations : complétez votre CV pour que notre IA puisse évaluer les offres qui vous correspondent. <a href=\"candidate-cv.html\" class=\"underline text-navy font-medium\">Uploader mon CV →</a>";
+      return;
+    }
+
+    grid.innerHTML = data.map(renderRecommendation).join('');
+    status.classList.add('hidden');
+    grid.classList.remove('hidden');
+  } catch (err) {
+    status.textContent = err.message;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadRecommendations);
+</script>
+</body></html>

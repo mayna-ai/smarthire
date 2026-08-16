@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Offres recruteur · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/api.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => SmartHireAPI.requireAuth(['recruiter']));</script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="recruiter" active="recruiter-jobs"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold">Offres d'emploi</h1>
+        <p class="text-sm text-muted mt-0.5">Gérez tous vos postes.</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-outline text-sm">🔔</button>
+        <button class="btn-primary text-sm">+ Action</button>
+      </div>
+    </header>
+    <div class="p-6">
+<div class="flex justify-end mb-4"><a href="recruiter-jobs-new.html" class="btn-gold">+ Créer une offre</a></div>
+<p id="jobs-mine-status" class="text-sm text-muted mb-3">Chargement…</p>
+<div class="card overflow-hidden">
+  <table class="w-full">
+    <thead class="bg-slate-50 border-b border-line text-xs uppercase tracking-wider text-muted">
+      <tr><th class="px-5 py-3 text-left">Poste</th><th class="px-5 py-3 text-left">Statut</th><th class="px-5 py-3 text-left">Candidats</th><th class="px-5 py-3 text-left">Publié</th><th></th></tr>
+    </thead>
+    <tbody id="jobs-mine-tbody" class="divide-y divide-line text-sm"></tbody>
+  </table>
+</div></div>
+  </main>
+</div><script src="components/sh-sidebar.js"></script>
+<script>
+const statusBadges = {
+  draft: '<span class="badge bg-warning/15 text-warning">Brouillon</span>',
+  published: '<span class="badge bg-success/15 text-success">Actif</span>',
+  closed: '<span class="badge bg-slate-200 text-slate-600">Clôturée</span>',
+};
+
+function renderJobRow(job) {
+  const publishedLabel = job.published_at
+    ? `il y a ${Math.max(0, Math.floor((Date.now() - new Date(job.published_at)) / 86400000))}j`
+    : '—';
+  return `
+    <tr class="hover:bg-slate-50">
+      <td class="px-5 py-4"><p class="font-semibold">${job.title}</p><p class="text-xs text-muted">${job.location || '—'} · ${job.contract_type}</p></td>
+      <td class="px-5 py-4">${statusBadges[job.status] || job.status}</td>
+      <td class="px-5 py-4 font-medium">${job.applications_count}</td>
+      <td class="px-5 py-4 text-muted">${publishedLabel}</td>
+      <td class="px-5 py-4 text-right"><a href="recruiter-candidates.html?job_id=${job.id}" class="btn-outline text-xs">Voir</a></td>
+    </tr>`;
+}
+
+async function loadMyJobs() {
+  const status = document.getElementById('jobs-mine-status');
+  const tbody = document.getElementById('jobs-mine-tbody');
+  try {
+    const { data } = await SmartHireAPI.request('api/jobs/mine?per_page=50');
+    if (!data.length) {
+      status.textContent = "Tu n'as pas encore créé d'offre.";
+      return;
+    }
+    status.classList.add('hidden');
+    tbody.innerHTML = data.map(renderJobRow).join('');
+  } catch (err) {
+    status.textContent = err.message;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadMyJobs);
+</script>
+</body></html>

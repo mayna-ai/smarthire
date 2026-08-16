@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Notifications · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/api.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => SmartHireAPI.requireAuth(['candidate']));</script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="candidate" active="candidate-notifications"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold">Notifications</h1>
+        <p class="text-sm text-muted mt-0.5">Toutes vos alertes.</p>
+      </div>
+      <div class="flex gap-2">
+        <button id="notif-mark-all" class="btn-outline text-sm hidden">Tout marquer comme lu</button>
+      </div>
+    </header>
+    <div class="p-6">
+<p id="notif-status" class="text-sm text-muted mb-4">Chargement des notifications…</p>
+<div id="notif-list-wrap" class="card divide-y divide-line hidden"></div>
+</div>
+  </main>
+</div><script src="components/sh-sidebar.js"></script>
+<script>
+// Type de notification -> icône + couleur (le backend envoie 'new_application',
+// 'application_status', etc. — on garde un rendu par défaut pour tout type inconnu)
+const NOTIF_TYPE_MAP = {
+  new_application:     { icon: '📨', cls: 'bg-success/15 text-success' },
+  application_status:  { icon: '📅', cls: 'bg-gold/15 text-gold' },
+  recommendation:      { icon: '✨', cls: 'bg-navy/15 text-navy' },
+  message:             { icon: '💬', cls: 'bg-navy/15 text-navy' },
+};
+
+function formatRelativeTime(dateStr) {
+  const diffMs = Date.now() - new Date(dateStr.replace(' ', 'T'));
+  const diffH = Math.floor(diffMs / 3_600_000);
+  if (diffH < 1) return "à l'instant";
+  if (diffH < 24) return `il y a ${diffH}h`;
+  const diffD = Math.floor(diffH / 24);
+  if (diffD === 1) return 'hier';
+  if (diffD < 7) return `il y a ${diffD} jours`;
+  return new Date(dateStr.replace(' ', 'T')).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+}
+
+function renderNotification(notif) {
+  const type = NOTIF_TYPE_MAP[notif.type] || { icon: '🔔', cls: 'bg-navy/15 text-navy' };
+  const unread = Number(notif.is_read) === 0;
+  return `
+    <div class="p-4 flex gap-4 items-start hover:bg-slate-50 ${unread ? 'bg-navy/5' : ''}" data-id="${notif.id}" data-unread="${unread}">
+      <div class="h-10 w-10 rounded-full ${type.cls} flex items-center justify-center shrink-0">${type.icon}</div>
+      <div class="flex-1">
+        <p class="text-sm ${unread ? 'font-semibold' : 'font-medium'}">${notif.message}</p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <span class="text-xs text-muted">${formatRelativeTime(notif.created_at)}</span>
+        ${unread ? '<span class="h-2 w-2 rounded-full bg-navy" title="Non lu"></span>' : ''}
+      </div>
+    </div>`;
+}
+
+async function markAsRead(id, el) {
+  try {
+    await SmartHireAPI.request(`api/notifications/${id}/read`, { method: 'PUT' });
+    el.dataset.unread = 'false';
+    el.classList.remove('bg-navy/5');
+    el.querySelector('.font-semibold')?.classList.replace('font-semibold', 'font-medium');
+    el.querySelector('[title="Non lu"]')?.remove();
+    updateMarkAllVisibility();
+  } catch (err) {
+    // Échec silencieux : ce n'est pas bloquant pour la lecture de la notif
+    console.error(err);
+  }
+}
+
+function updateMarkAllVisibility() {
+  const anyUnread = document.querySelector('#notif-list-wrap [data-unread="true"]');
+  document.getElementById('notif-mark-all').classList.toggle('hidden', !anyUnread);
+}
+
+async function loadNotifications() {
+  const status = document.getElementById('notif-status');
+  const wrap = document.getElementById('notif-list-wrap');
+
+  try {
+    const { data } = await SmartHireAPI.request('api/notifications?per_page=50');
+
+    if (!data.length) {
+      status.textContent = "Aucune notification pour l'instant.";
+      return;
+    }
+
+    wrap.innerHTML = data.map(renderNotification).join('');
+    wrap.querySelectorAll('[data-id]').forEach((el) => {
+      el.addEventListener('click', () => {
+        if (el.dataset.unread === 'true') markAsRead(el.dataset.id, el);
+      });
+    });
+    status.classList.add('hidden');
+    wrap.classList.remove('hidden');
+    updateMarkAllVisibility();
+  } catch (err) {
+    status.textContent = err.message;
+  }
+}
+
+document.getElementById('notif-mark-all').addEventListener('click', async () => {
+  try {
+    await SmartHireAPI.request('api/notifications/read-all', { method: 'PUT' });
+    document.querySelectorAll('#notif-list-wrap [data-unread="true"]').forEach((el) => {
+      el.dataset.unread = 'false';
+      el.classList.remove('bg-navy/5');
+      el.querySelector('.font-semibold')?.classList.replace('font-semibold', 'font-medium');
+      el.querySelector('[title="Non lu"]')?.remove();
+    });
+    updateMarkAllVisibility();
+  } catch (err) {
+    console.error(err);
+  }
+});
+
+document.addEventListener('DOMContentLoaded', loadNotifications);
+</script>
+</body></html>

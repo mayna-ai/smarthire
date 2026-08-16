@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Détail offre · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/api.js" defer></script>
+</head>
+<body>
+
+<sh-navbar active="jobs"></sh-navbar>
+<section class="max-w-5xl mx-auto px-6 py-10">
+  <a href="jobs.html" class="text-sm text-muted hover:text-gold">← Retour aux offres</a>
+  <p id="job-status" class="text-sm text-muted mt-6">Chargement de l'offre…</p>
+  <div id="job-card" class="card p-8 mt-4 hidden">
+    <div class="flex items-start justify-between flex-wrap gap-4">
+      <div>
+        <h1 id="job-title" class="font-display text-3xl font-bold"></h1>
+        <p id="job-subtitle" class="text-muted mt-1"></p>
+        <div class="flex gap-2 mt-3">
+          <span id="job-contract-badge" class="badge bg-slate-100 text-slate-700"></span>
+          <span id="job-published-badge" class="badge bg-success/15 text-success"></span>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button id="apply-btn" class="btn-gold">Postuler</button>
+      </div>
+    </div>
+    <p id="apply-feedback" class="text-sm mt-3 hidden"></p>
+    <div class="grid md:grid-cols-3 gap-6 mt-8">
+      <div class="md:col-span-2 space-y-6">
+        <div><h2 class="font-semibold mb-2">Description du poste</h2>
+          <p id="job-description" class="text-sm text-slate-700 leading-relaxed whitespace-pre-line"></p></div>
+      </div>
+      <aside class="space-y-4">
+        <div class="card p-4 bg-slate-50">
+          <h3 class="font-semibold text-sm mb-3">Compétences clés</h3>
+          <div id="job-skills" class="flex flex-wrap gap-1"></div>
+        </div>
+        <div class="card p-4 bg-slate-50">
+          <h3 class="font-semibold text-sm mb-3">Détails</h3>
+          <dl class="text-sm space-y-2">
+            <div class="flex justify-between"><dt class="text-muted">Type de contrat</dt><dd id="job-type" class="font-semibold"></dd></div>
+            <div class="flex justify-between"><dt class="text-muted">Lieu</dt><dd id="job-location"></dd></div>
+            <div class="flex justify-between"><dt class="text-muted">Entreprise</dt><dd id="job-company"></dd></div>
+          </dl>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<sh-footer></sh-footer><script src="components/sh-navbar.js"></script>
+<script src="components/sh-footer.js"></script>
+<script>
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (days <= 0) return "Publié aujourd'hui";
+  if (days === 1) return 'Publié il y a 1 jour';
+  return `Publié il y a ${days} jours`;
+}
+
+function getJobId() {
+  return new URLSearchParams(window.location.search).get('id');
+}
+
+async function loadJob() {
+  const status = document.getElementById('job-status');
+  const card = document.getElementById('job-card');
+  const id = getJobId();
+
+  if (!id) {
+    status.textContent = "Aucune offre sélectionnée.";
+    return;
+  }
+
+  try {
+    const job = await SmartHireAPI.request(`api/jobs/${id}`);
+
+    document.getElementById('job-title').textContent = job.title;
+    document.getElementById('job-subtitle').textContent =
+      `${job.company_name} · ${job.location || 'Lieu non précisé'} · ${job.contract_type}`;
+    document.getElementById('job-contract-badge').textContent = job.contract_type;
+    document.getElementById('job-published-badge').textContent = timeAgo(job.published_at);
+    document.getElementById('job-description').textContent = job.description;
+    document.getElementById('job-type').textContent = job.contract_type;
+    document.getElementById('job-location').textContent = job.location || 'Non précisé';
+    document.getElementById('job-company').textContent = job.company_name;
+
+    const skills = job.required_skills || [];
+    const skillsEl = document.getElementById('job-skills');
+    skillsEl.innerHTML = skills.length
+      ? skills.map(s => `<span class="badge bg-white border border-line">${s}</span>`).join('')
+      : '<span class="text-sm text-muted">Aucune compétence précisée</span>';
+
+    status.classList.add('hidden');
+    card.classList.remove('hidden');
+    setupApplyButton(job);
+  } catch (err) {
+    status.textContent = err.message;
+  }
+}
+
+function setupApplyButton(job) {
+  const btn = document.getElementById('apply-btn');
+  const feedback = document.getElementById('apply-feedback');
+
+  // Non connecté : on redirige vers la connexion au clic
+  if (!SmartHireAPI.isLoggedIn()) {
+    btn.addEventListener('click', () => { window.location.href = 'login.html'; });
+    return;
+  }
+
+  const user = SmartHireAPI.getUser();
+
+  // Seuls les candidats peuvent postuler
+  if (user.role !== 'candidate') {
+    btn.disabled = true;
+    btn.classList.add('opacity-50', 'cursor-not-allowed');
+    btn.title = 'Seul un compte candidat peut postuler';
+    return;
+  }
+
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    btn.textContent = 'Envoi…';
+    feedback.classList.add('hidden');
+
+    try {
+      await SmartHireAPI.request('api/applications', {
+        method: 'POST',
+        body: { job_offer_id: job.id },
+      });
+      btn.textContent = '✓ Candidature envoyée';
+      feedback.textContent = 'Votre candidature a bien été envoyée au recruteur.';
+      feedback.className = 'text-sm mt-3 text-success';
+      feedback.classList.remove('hidden');
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Postuler';
+      feedback.textContent = err.message;
+      feedback.className = 'text-sm mt-3 text-danger';
+      feedback.classList.remove('hidden');
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', loadJob);
+</script>
+</body></html>

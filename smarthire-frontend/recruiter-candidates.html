@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Candidats · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/api.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => SmartHireAPI.requireAuth(['recruiter']));</script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="recruiter" active="recruiter-candidates"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold">Candidats</h1>
+        <p class="text-sm text-muted mt-0.5">Recherchez et examinez vos candidats.</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-outline text-sm">🔔</button>
+        <button class="btn-primary text-sm">+ Action</button>
+      </div>
+    </header>
+    <div class="p-6">
+<div class="flex gap-3 mb-5 flex-wrap">
+  <select id="job-select" class="input flex-1 max-w-md"><option value="">Chargement de vos offres…</option></select>
+</div>
+<p id="candidates-status" class="text-sm text-muted">Sélectionnez une offre pour voir ses candidats.</p>
+<div id="candidates-grid" class="grid md:grid-cols-2 xl:grid-cols-3 gap-5 mt-5"></div>
+</div>
+  </main>
+</div><script src="components/sh-sidebar.js"></script>
+<script>
+const STATUS_MAP = {
+  submitted:   { label: 'Envoyée',  cls: 'bg-navy/10 text-navy' },
+  shortlisted: { label: 'Présélectionné', cls: 'bg-warning/15 text-warning' },
+  interview:   { label: 'Entretien', cls: 'bg-success/15 text-success' },
+  rejected:    { label: 'Refusé',   cls: 'bg-danger/15 text-danger' },
+  hired:       { label: 'Recruté',  cls: 'bg-gold/15 text-goldDark' },
+};
+
+function initials(first, last) {
+  return `${(first || '?')[0]}${(last || '?')[0]}`.toUpperCase();
+}
+
+function renderCandidateCard(app) {
+  const status = STATUS_MAP[app.status] || { label: app.status, cls: 'bg-slate-100 text-slate-700' };
+  const score = app.match_score !== null && app.match_score !== undefined ? `${app.match_score}%` : '—';
+  const statusOptions = Object.entries(STATUS_MAP)
+    .map(([value, s]) => `<option value="${value}" ${app.status === value ? 'selected' : ''}>${s.label}</option>`)
+    .join('');
+
+  return `
+    <div class="card p-5" data-app-id="${app.id}">
+      <div class="flex gap-3">
+        <div class="h-12 w-12 rounded-full bg-navy text-white flex items-center justify-center font-semibold shrink-0">${initials(app.first_name, app.last_name)}</div>
+        <div class="flex-1 min-w-0">
+          <p class="font-display font-semibold">${app.first_name} ${app.last_name}</p>
+          <p class="text-sm text-muted truncate">${app.headline || 'Profil candidat'}</p>
+        </div>
+        <span class="badge bg-gold/15 text-goldDark shrink-0">${score}</span>
+      </div>
+      <div class="mt-4 flex items-center justify-between gap-2">
+        <span class="badge ${status.cls}">${status.label}</span>
+        <select class="input text-xs status-select py-1">${statusOptions}</select>
+      </div>
+      <p class="update-feedback text-xs mt-2 hidden"></p>
+    </div>`;
+}
+
+async function loadJobOptions() {
+  const select = document.getElementById('job-select');
+  try {
+    const { data } = await SmartHireAPI.request('api/jobs/mine?per_page=50');
+    if (!data.length) {
+      select.innerHTML = '<option value="">Aucune offre publiée</option>';
+      document.getElementById('candidates-status').textContent = "Vous n'avez pas encore publié d'offre.";
+      return;
+    }
+    select.innerHTML = data.map(job => `<option value="${job.id}">${job.title}</option>`).join('');
+    loadCandidates(select.value);
+  } catch (err) {
+    select.innerHTML = '<option value="">Erreur de chargement</option>';
+    document.getElementById('candidates-status').textContent = err.message;
+  }
+}
+
+async function loadCandidates(jobId) {
+  const status = document.getElementById('candidates-status');
+  const grid = document.getElementById('candidates-grid');
+  grid.innerHTML = '';
+  if (!jobId) return;
+
+  status.textContent = 'Chargement des candidats…';
+  status.classList.remove('hidden');
+
+  try {
+    const { data } = await SmartHireAPI.request(`api/jobs/${jobId}/applications?per_page=50`);
+    if (!data.length) {
+      status.textContent = 'Aucune candidature reçue pour cette offre pour le moment.';
+      return;
+    }
+    status.classList.add('hidden');
+    grid.innerHTML = data.map(renderCandidateCard).join('');
+    grid.querySelectorAll('.status-select').forEach(select => {
+      select.addEventListener('change', (e) => updateStatus(e.target));
+    });
+  } catch (err) {
+    status.textContent = err.message;
+  }
+}
+
+async function updateStatus(select) {
+  const card = select.closest('[data-app-id]');
+  const feedback = card.querySelector('.update-feedback');
+  const appId = card.dataset.appId;
+  const newStatus = select.value;
+
+  select.disabled = true;
+  try {
+    await SmartHireAPI.request(`api/applications/${appId}`, {
+      method: 'PUT',
+      body: { status: newStatus },
+    });
+    const badge = card.querySelector('.badge');
+    const mapped = STATUS_MAP[newStatus];
+    badge.className = `badge ${mapped.cls}`;
+    badge.textContent = mapped.label;
+    feedback.textContent = 'Statut mis à jour ✓';
+    feedback.className = 'update-feedback text-xs mt-2 text-success';
+  } catch (err) {
+    feedback.textContent = err.message;
+    feedback.className = 'update-feedback text-xs mt-2 text-danger';
+  } finally {
+    select.disabled = false;
+    feedback.classList.remove('hidden');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadJobOptions);
+document.getElementById('job-select').addEventListener('change', (e) => loadCandidates(e.target.value));
+</script>
+</body></html>

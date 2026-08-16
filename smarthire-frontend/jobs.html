@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Offres · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/api.js" defer></script>
+</head>
+<body>
+
+<sh-navbar active="jobs"></sh-navbar>
+<section class="max-w-7xl mx-auto px-6 py-12">
+  <h1 class="font-display text-4xl font-bold">Toutes les offres</h1>
+  <p class="text-muted mt-2">Trouvez votre prochain emploi grâce aux recommandations IA.</p>
+  <div class="card p-4 mt-6 flex gap-3 flex-wrap">
+    <input id="jobs-search" class="input flex-1 min-w-[200px]" placeholder="🔍 Mot-clé, poste, compétence…">
+    <input id="jobs-location" class="input w-48" placeholder="📍 Lieu">
+    <select class="input w-48"><option>Tous les types</option><option>CDI</option><option>CDD</option><option>Freelance</option></select>
+    <button id="jobs-search-btn" class="btn-primary">Rechercher</button>
+  </div>
+  <p id="jobs-status" class="text-sm text-muted mt-6">Chargement des offres…</p>
+  <div id="jobs-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mt-6"></div>
+</section>
+
+<sh-footer></sh-footer><script src="components/sh-navbar.js"></script>
+<script src="components/sh-footer.js"></script>
+<script>
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (days <= 0) return "Publié aujourd'hui";
+  if (days === 1) return 'Publié il y a 1 jour';
+  return `Publié il y a ${days} jours`;
+}
+
+function renderJobCard(job) {
+  return `
+    <a href="job-detail.html?id=${job.id}" class="card p-5 hover:shadow-lg transition block">
+      <div class="flex items-start justify-between">
+        <div><p class="font-display font-semibold">${job.title}</p><p class="text-xs text-muted mt-1">${job.company_name} · ${job.location || 'Lieu non précisé'}</p></div>
+      </div>
+      <div class="mt-4 flex flex-wrap gap-1">
+        <span class="badge bg-slate-100 text-slate-700">${job.contract_type}</span>
+      </div>
+      <p class="text-xs text-muted mt-3">${timeAgo(job.published_at)}</p>
+    </a>`;
+}
+
+async function loadJobs() {
+  const grid = document.getElementById('jobs-grid');
+  const status = document.getElementById('jobs-status');
+  const search = document.getElementById('jobs-search').value.trim();
+  const location = document.getElementById('jobs-location').value.trim();
+
+  status.textContent = 'Chargement des offres…';
+  status.classList.remove('hidden');
+  grid.innerHTML = '';
+
+  try {
+    const params = new URLSearchParams({ per_page: '12' });
+    if (search) params.set('search', search);
+    if (location) params.set('location', location);
+
+    const { data } = await SmartHireAPI.request(`api/jobs?${params.toString()}`);
+
+    if (!data.length) {
+      status.textContent = 'Aucune offre ne correspond à ta recherche pour le moment.';
+      return;
+    }
+    status.classList.add('hidden');
+    grid.innerHTML = data.map(renderJobCard).join('');
+  } catch (err) {
+    status.textContent = err.message;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadJobs);
+document.getElementById('jobs-search-btn').addEventListener('click', loadJobs);
+</script>
+</body></html>

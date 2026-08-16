@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Profil candidat · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/api.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => SmartHireAPI.requireAuth(['candidate']));</script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="candidate" active="candidate-profile"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold">Mon profil</h1>
+        <p class="text-sm text-muted mt-0.5">Mettez à jour vos informations.</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-outline text-sm">🔔</button>
+      </div>
+    </header>
+    <div class="p-6">
+<p id="profile-status" class="text-sm text-muted mb-4">Chargement du profil…</p>
+<div id="profile-content" class="grid lg:grid-cols-3 gap-5 hidden">
+  <div class="card p-6 text-center">
+    <div id="profile-avatar" class="h-24 w-24 rounded-full bg-navy text-white flex items-center justify-center font-display text-3xl font-bold mx-auto">--</div>
+    <h3 id="profile-name" class="font-display font-semibold mt-4">—</h3>
+    <p id="profile-headline-preview" class="text-sm text-muted">—</p>
+    <p class="text-xs text-muted mt-3">La photo de profil n'est pas encore prise en charge côté serveur.</p>
+  </div>
+  <div class="card p-6 lg:col-span-2">
+    <h3 class="font-display font-semibold mb-4">Informations personnelles</h3>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div><label class="text-sm font-medium">Prénom</label><input id="f-first-name" class="input mt-1"></div>
+      <div><label class="text-sm font-medium">Nom</label><input id="f-last-name" class="input mt-1"></div>
+      <div>
+        <label class="text-sm font-medium">Email</label>
+        <input id="f-email" class="input mt-1" disabled>
+        <p class="text-xs text-muted mt-1">Modifiable depuis la page <a href="candidate-settings.html" class="underline">Paramètres</a>.</p>
+      </div>
+      <div><label class="text-sm font-medium">Téléphone</label><input id="f-phone" class="input mt-1"></div>
+      <div><label class="text-sm font-medium">Localisation</label><input id="f-location" class="input mt-1" placeholder="ex: Paris, France"></div>
+      <div><label class="text-sm font-medium">Années d'expérience</label><input id="f-years" type="number" min="0" max="60" class="input mt-1"></div>
+      <div class="sm:col-span-2"><label class="text-sm font-medium">Titre / accroche</label><input id="f-headline" class="input mt-1" placeholder="ex: Développeuse Frontend Senior"></div>
+    </div>
+    <p id="save-feedback" class="text-sm mt-3 hidden"></p>
+    <div class="flex justify-end gap-2 mt-5">
+      <button id="btn-cancel" class="btn-outline">Annuler</button>
+      <button id="btn-save" class="btn-primary">Enregistrer</button>
+    </div>
+  </div>
+</div></div>
+  </main>
+</div><script src="components/sh-sidebar.js"></script>
+<script>
+let currentCandidate = null;
+
+function fillForm(candidate) {
+  document.getElementById('f-first-name').value = candidate.first_name || '';
+  document.getElementById('f-last-name').value = candidate.last_name || '';
+  document.getElementById('f-phone').value = candidate.phone || '';
+  document.getElementById('f-location').value = candidate.location || '';
+  document.getElementById('f-years').value = candidate.years_experience ?? '';
+  document.getElementById('f-headline').value = candidate.headline || '';
+
+  const initials = `${(candidate.first_name || '?')[0]}${(candidate.last_name || '?')[0]}`.toUpperCase();
+  document.getElementById('profile-avatar').textContent = initials;
+  document.getElementById('profile-name').textContent = `${candidate.first_name || ''} ${candidate.last_name || ''}`.trim() || '—';
+  document.getElementById('profile-headline-preview').textContent = candidate.headline || 'Aucun titre renseigné';
+}
+
+async function loadProfile() {
+  const status = document.getElementById('profile-status');
+  try {
+    const [candidate, me] = await Promise.all([
+      SmartHireAPI.request('api/candidates/me'),
+      SmartHireAPI.request('api/auth/me'),
+    ]);
+    currentCandidate = candidate;
+    document.getElementById('f-email').value = me.email || '';
+    fillForm(candidate);
+    status.classList.add('hidden');
+    document.getElementById('profile-content').classList.remove('hidden');
+  } catch (err) {
+    status.textContent = err.message;
+  }
+}
+
+async function saveProfile() {
+  const feedback = document.getElementById('save-feedback');
+  const btn = document.getElementById('btn-save');
+  const payload = {
+    first_name: document.getElementById('f-first-name').value.trim(),
+    last_name: document.getElementById('f-last-name').value.trim(),
+    phone: document.getElementById('f-phone').value.trim(),
+    location: document.getElementById('f-location').value.trim(),
+    years_experience: document.getElementById('f-years').value ? Number(document.getElementById('f-years').value) : 0,
+    headline: document.getElementById('f-headline').value.trim(),
+  };
+
+  btn.disabled = true;
+  feedback.classList.add('hidden');
+  try {
+    const updated = await SmartHireAPI.request(`api/candidates/${currentCandidate.id}`, { method: 'PUT', body: payload });
+    currentCandidate = updated;
+    fillForm(updated);
+    feedback.textContent = 'Profil mis à jour ✓';
+    feedback.className = 'text-sm mt-3 text-success';
+  } catch (err) {
+    feedback.textContent = err.message;
+    feedback.className = 'text-sm mt-3 text-danger';
+  } finally {
+    btn.disabled = false;
+    feedback.classList.remove('hidden');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadProfile);
+document.getElementById('btn-save').addEventListener('click', saveProfile);
+document.getElementById('btn-cancel').addEventListener('click', () => currentCandidate && fillForm(currentCandidate));
+</script>
+</body></html>

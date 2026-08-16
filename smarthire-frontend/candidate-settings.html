@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paramètres candidat · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/api.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => SmartHireAPI.requireAuth(['candidate']));</script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="candidate" active="candidate-settings"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold">Paramètres</h1>
+        <p class="text-sm text-muted mt-0.5">Gérez votre compte.</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-outline text-sm">🔔</button>
+      </div>
+    </header>
+    <div class="p-6">
+<div class="max-w-3xl space-y-5">
+  <div class="card p-6">
+    <h3 class="font-display font-semibold mb-4">Compte</h3>
+    <div class="space-y-3">
+      <div>
+        <label class="text-sm font-medium">Email</label>
+        <input id="s-email" class="input mt-1">
+      </div>
+      <div>
+        <label class="text-sm font-medium">Mot de passe actuel</label>
+        <input id="s-current-password" class="input mt-1" type="password" placeholder="Requis pour changer l'email ou le mot de passe" autocomplete="current-password">
+      </div>
+      <div>
+        <label class="text-sm font-medium">Nouveau mot de passe</label>
+        <input id="s-new-password" class="input mt-1" type="password" placeholder="Laisser vide pour ne pas changer" autocomplete="new-password">
+      </div>
+    </div>
+    <p id="account-feedback" class="text-sm mt-3 hidden"></p>
+    <div class="flex justify-end mt-4">
+      <button id="btn-save-account" class="btn-primary">Enregistrer le compte</button>
+    </div>
+  </div>
+  <div class="card p-6">
+    <h3 class="font-display font-semibold mb-1">Préférences de notifications</h3>
+    <p class="text-xs text-muted mb-3">🚧 Fonctionnalité pas encore branchée côté serveur (aucune table de préférences en base) — à venir.</p>
+    <label class="flex items-center justify-between py-2 opacity-50"><span>Emails d'alerte offres</span><input type="checkbox" checked disabled></label>
+    <label class="flex items-center justify-between py-2 opacity-50"><span>Messages recruteurs</span><input type="checkbox" checked disabled></label>
+    <label class="flex items-center justify-between py-2 opacity-50"><span>Newsletter</span><input type="checkbox" disabled></label>
+  </div>
+</div></div>
+  </main>
+</div><script src="components/sh-sidebar.js"></script>
+<script>
+async function loadAccount() {
+  try {
+    const me = await SmartHireAPI.request('api/auth/me');
+    document.getElementById('s-email').value = me.email || '';
+  } catch (err) {
+    document.getElementById('account-feedback').textContent = err.message;
+    document.getElementById('account-feedback').className = 'text-sm mt-3 text-danger';
+    document.getElementById('account-feedback').classList.remove('hidden');
+  }
+}
+
+async function saveAccount() {
+  const feedback = document.getElementById('account-feedback');
+  const btn = document.getElementById('btn-save-account');
+  const email = document.getElementById('s-email').value.trim();
+  const currentPassword = document.getElementById('s-current-password').value;
+  const newPassword = document.getElementById('s-new-password').value;
+
+  const payload = {};
+  if (email) payload.email = email;
+  if (currentPassword || newPassword) {
+    payload.current_password = currentPassword;
+    payload.new_password = newPassword;
+  }
+
+  if (Object.keys(payload).length === 0) {
+    feedback.textContent = 'Rien à enregistrer.';
+    feedback.className = 'text-sm mt-3 text-muted';
+    feedback.classList.remove('hidden');
+    return;
+  }
+
+  btn.disabled = true;
+  feedback.classList.add('hidden');
+  try {
+    await SmartHireAPI.request('api/auth/account', { method: 'PUT', body: payload });
+    document.getElementById('s-current-password').value = '';
+    document.getElementById('s-new-password').value = '';
+    feedback.textContent = 'Compte mis à jour ✓';
+    feedback.className = 'text-sm mt-3 text-success';
+  } catch (err) {
+    feedback.textContent = err.message;
+    feedback.className = 'text-sm mt-3 text-danger';
+  } finally {
+    btn.disabled = false;
+    feedback.classList.remove('hidden');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadAccount);
+document.getElementById('btn-save-account').addEventListener('click', saveAccount);
+</script>
+</body></html>

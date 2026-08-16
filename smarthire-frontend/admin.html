@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin · SmartHire AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/tailwind-config.js"></script>
+<script src="assets/api.js"></script>
+<script>document.addEventListener("DOMContentLoaded", () => SmartHireAPI.requireAuth(['admin']));</script>
+</head>
+<body>
+
+<div class="min-h-screen flex">
+  <sh-sidebar role="admin" active="admin"></sh-sidebar>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-line px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="font-display text-2xl font-bold">Admin</h1>
+        <p class="text-sm text-muted mt-0.5">Supervision globale de la plateforme.</p>
+      </div>
+    </header>
+    <div class="p-6">
+<p id="ad-status" class="text-sm text-muted mb-4">Chargement…</p>
+<div id="ad-content" class="hidden">
+
+<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="ad-kpis"></div>
+
+<div class="grid lg:grid-cols-3 gap-5 mb-6">
+  <div class="card p-6 lg:col-span-2">
+    <h3 class="font-display font-semibold mb-4">Inscriptions récentes</h3>
+    <ul class="divide-y divide-line text-sm" id="ad-recent"></ul>
+  </div>
+  <div class="card p-6">
+    <h3 class="font-display font-semibold mb-4">Santé système</h3>
+    <ul class="space-y-3 text-sm" id="ad-health"></ul>
+  </div>
+</div>
+
+<div class="card p-6">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="font-display font-semibold">Utilisateurs</h3>
+    <select id="ad-role-filter" class="border border-line rounded-lg text-sm px-2 py-1">
+      <option value="">Tous les rôles</option>
+      <option value="candidate">Candidats</option>
+      <option value="recruiter">Recruteurs</option>
+      <option value="admin">Admins</option>
+    </select>
+  </div>
+  <table class="w-full text-sm">
+    <thead class="text-left text-muted border-b border-line">
+      <tr><th class="pb-2 font-medium">Email</th><th class="pb-2 font-medium">Rôle</th><th class="pb-2 font-medium">Statut</th><th class="pb-2 font-medium">Inscrit le</th><th class="pb-2 font-medium"></th></tr>
+    </thead>
+    <tbody id="ad-users-body" class="divide-y divide-line"></tbody>
+  </table>
+  <div id="ad-users-empty" class="hidden text-sm text-muted py-6 text-center">Aucun utilisateur pour ce filtre.</div>
+</div>
+
+</div>
+</div>
+  </main>
+</div><script src="components/sh-sidebar.js"></script>
+<script>
+const ROLE_LABELS = { candidate: 'Candidat', recruiter: 'Recruteur', admin: 'Admin' };
+const HEALTH_LABELS = { api: 'API', database: 'Base de données', ai_service: 'Moteur IA NLP' };
+
+function kpiCard(label, value, icon, cls) {
+  return `
+    <div class="card p-5">
+      <div class="flex items-start justify-between">
+        <div>
+          <p class="text-xs uppercase tracking-wider text-muted font-medium">${label}</p>
+          <p class="mt-2 text-3xl font-display font-bold">${value}</p>
+        </div>
+        <div class="h-10 w-10 rounded-xl ${cls} flex items-center justify-center">${icon}</div>
+      </div>
+    </div>`;
+}
+
+function renderKpis(kpis) {
+  document.getElementById('ad-kpis').innerHTML = [
+    kpiCard('Utilisateurs', kpis.total_users, '👥', 'bg-navy/10 text-navy'),
+    kpiCard('Entreprises', kpis.companies, '🏢', 'bg-gold/10 text-gold'),
+    kpiCard('Offres actives', kpis.active_jobs, '💼', 'bg-success/10 text-success'),
+    kpiCard('Candidatures', kpis.total_applications, '📨', 'bg-navy/10 text-navy'),
+  ].join('');
+}
+
+function timeAgo(dateStr) {
+  const diffMs = Date.now() - new Date(dateStr.replace(' ', 'T'));
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "à l'instant";
+  if (mins < 60) return `${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} h`;
+  return `${Math.floor(hours / 24)} j`;
+}
+
+function renderRecentSignups(users) {
+  const list = document.getElementById('ad-recent');
+  if (!users.length) {
+    list.innerHTML = '<li class="py-3 text-muted">Aucune inscription pour l\'instant.</li>';
+    return;
+  }
+  list.innerHTML = users.map((u) => `
+    <li class="py-3 flex gap-3">
+      <span class="h-9 w-9 rounded-full bg-navy/15 text-navy flex items-center justify-center">👤</span>
+      <div class="flex-1">
+        <p class="font-medium">Nouvel utilisateur — ${ROLE_LABELS[u.role] || u.role}</p>
+        <p class="text-xs text-muted">${u.email}</p>
+      </div>
+      <span class="text-xs text-muted whitespace-nowrap">${timeAgo(u.created_at)}</span>
+    </li>`).join('');
+}
+
+function renderHealth(health) {
+  const wrap = document.getElementById('ad-health');
+  wrap.innerHTML = Object.entries(health).map(([key, val]) => {
+    const ok = val === 'ok';
+    const badge = ok ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning';
+    const text = ok ? 'Opérationnel' : 'Indisponible';
+    return `<li class="flex justify-between"><span>${HEALTH_LABELS[key] || key}</span><span class="badge ${badge}">${text}</span></li>`;
+  }).join('');
+}
+
+async function toggleUserStatus(id, nextActive, btn) {
+  btn.disabled = true;
+  try {
+    await SmartHireAPI.request(`api/admin/users/${id}/status`, {
+      method: 'PUT',
+      body: { is_active: nextActive },
+    });
+    loadUsers(document.getElementById('ad-role-filter').value);
+  } catch (err) {
+    alert(err.message);
+    btn.disabled = false;
+  }
+}
+
+function renderUsers(users) {
+  const body = document.getElementById('ad-users-body');
+  const empty = document.getElementById('ad-users-empty');
+
+  if (!users.length) {
+    body.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  body.innerHTML = users.map((u) => {
+    const active = !!Number(u.is_active);
+    const statusBadge = active
+      ? '<span class="badge bg-success/15 text-success">Actif</span>'
+      : '<span class="badge bg-danger/15 text-danger">Suspendu</span>';
+    const actionLabel = active ? 'Suspendre' : 'Réactiver';
+    const date = new Date(u.created_at.replace(' ', 'T')).toLocaleDateString('fr-FR');
+    return `
+      <tr>
+        <td class="py-3">${u.email}</td>
+        <td class="py-3">${ROLE_LABELS[u.role] || u.role}</td>
+        <td class="py-3">${statusBadge}</td>
+        <td class="py-3 text-muted">${date}</td>
+        <td class="py-3 text-right">
+          <button class="btn-outline text-xs px-2 py-1" data-id="${u.id}" data-next="${active ? 0 : 1}">${actionLabel}</button>
+        </td>
+      </tr>`;
+  }).join('');
+
+  body.querySelectorAll('button[data-id]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      toggleUserStatus(btn.dataset.id, btn.dataset.next === '1', btn);
+    });
+  });
+}
+
+async function loadUsers(role) {
+  try {
+    const { data } = await SmartHireAPI.request(`api/admin/users?per_page=50${role ? `&role=${role}` : ''}`);
+    renderUsers(data);
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function loadAdmin() {
+  const status = document.getElementById('ad-status');
+  const content = document.getElementById('ad-content');
+
+  try {
+    const stats = await SmartHireAPI.request('api/admin/stats');
+    renderKpis(stats.kpis);
+    renderRecentSignups(stats.recent_signups);
+    renderHealth(stats.system_health);
+    await loadUsers('');
+
+    status.classList.add('hidden');
+    content.classList.remove('hidden');
+  } catch (err) {
+    status.textContent = err.message;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadAdmin();
+  document.getElementById('ad-role-filter').addEventListener('change', (e) => loadUsers(e.target.value));
+});
+</script>
+</body></html>
