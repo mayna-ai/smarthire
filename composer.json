@@ -1,0 +1,25 @@
+{
+    "name": "smarthire/backend",
+    "description": "SmartHire AI — API REST (PHP natif structuré)",
+    "type": "project",
+    "require": {
+        "php": ">=8.2",
+        "phpmailer/phpmailer": "^6.9"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5"
+    },
+    "autoload-dev": {
+        "classmap": [
+            "core/",
+            "controllers/",
+            "repositories/",
+            "middleware/",
+            "utils/",
+            "services/"
+        ]
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
